@@ -50,6 +50,7 @@ export interface Database {
           full_name: string;
           job_title: string | null;
           phone: string | null;
+          contact_email: string | null;
           created_at: string;
           updated_at: string;
         };

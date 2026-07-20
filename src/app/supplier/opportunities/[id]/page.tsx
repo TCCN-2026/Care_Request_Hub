@@ -43,6 +43,32 @@ export default async function OpportunityDetailPage({
     .eq("supplier_org_id", orgId)
     .maybeSingle();
 
+  let providerContact: { orgName: string; fullName: string; email: string | null; phone: string | null } | null =
+    null;
+  if (response?.status === "introduced") {
+    const { data: introduction } = await supabase
+      .from("introductions")
+      .select("*")
+      .eq("response_id", response.id)
+      .eq("decision", "approved")
+      .maybeSingle();
+
+    if (introduction) {
+      const [{ data: providerOrg }, { data: providerProfile }] = await Promise.all([
+        supabase.from("organisations").select("name").eq("id", introduction.provider_org_id).maybeSingle(),
+        supabase.from("profiles").select("*").eq("id", introduction.requested_by).maybeSingle(),
+      ]);
+      if (providerOrg && providerProfile) {
+        providerContact = {
+          orgName: providerOrg.name,
+          fullName: providerProfile.full_name,
+          email: providerProfile.contact_email,
+          phone: providerProfile.phone,
+        };
+      }
+    }
+  }
+
   return (
     <div className="max-w-2xl">
       <p className="text-sm text-zinc-500">
@@ -131,6 +157,17 @@ export default async function OpportunityDetailPage({
             {response.status === "submitted" && opportunity.status === "open" && (
               <div className="mt-4">
                 <WithdrawResponseButton id={response.id} />
+              </div>
+            )}
+            {providerContact && (
+              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                <p className="font-medium text-emerald-900">
+                  Introduction approved - contact details
+                </p>
+                <p className="mt-1 text-emerald-800">{providerContact.orgName}</p>
+                <p className="text-emerald-800">{providerContact.fullName}</p>
+                {providerContact.email && <p className="text-emerald-800">{providerContact.email}</p>}
+                {providerContact.phone && <p className="text-emerald-800">{providerContact.phone}</p>}
               </div>
             )}
           </>
