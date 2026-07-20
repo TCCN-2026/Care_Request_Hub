@@ -213,6 +213,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["introductions"]["Row"]>;
         Relationships: [];
       };
+      message_threads: {
+        Row: {
+          id: string;
+          request_id: string;
+          supplier_org_id: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["message_threads"]["Row"]> &
+          Pick<Database["public"]["Tables"]["message_threads"]["Row"], "request_id" | "supplier_org_id">;
+        Update: Partial<Database["public"]["Tables"]["message_threads"]["Row"]>;
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          thread_id: string;
+          sender_org_id: string;
+          sender_user_id: string;
+          body: string;
+          flagged: boolean;
+          flag_reason: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["messages"]["Row"]> &
+          Pick<Database["public"]["Tables"]["messages"]["Row"], "thread_id" | "sender_org_id" | "sender_user_id" | "body">;
+        Update: Partial<Database["public"]["Tables"]["messages"]["Row"]>;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;

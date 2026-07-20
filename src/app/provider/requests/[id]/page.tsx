@@ -9,7 +9,7 @@ import {
   responseStatusLabels,
   responseStatusBadgeVariant,
 } from "@/lib/domain/status-labels";
-import { anonymousSupplierLabel } from "@/lib/domain/serialize";
+import { getSupplierLabelMap } from "@/lib/domain/supplier-labels";
 import { RequestForm } from "../request-form";
 import { SubmitRequestButton, CancelRequestButton } from "./request-actions";
 import { ResponseCardActions } from "./response-card-actions";
@@ -17,6 +17,8 @@ import { uploadRequestAttachment, deleteRequestAttachment } from "./attachment-a
 import { getRequestAttachmentDownloadUrl, getResponseAttachmentDownloadUrl } from "@/lib/attachments/actions";
 import { AttachmentUploadForm } from "@/components/attachments/attachment-upload-form";
 import { AttachmentList } from "@/components/attachments/attachment-list";
+import { sendProviderMessage } from "./message-actions";
+import { MessageThread } from "@/components/messages/message-thread";
 
 export default async function ProviderRequestDetailPage({
   params,
@@ -142,6 +144,8 @@ export default async function ProviderRequestDetailPage({
       </div>
 
       <ResponsesSection requestId={request.id} />
+
+      <MessagesSection requestId={request.id} providerOrgId={request.provider_org_id} />
     </div>
   );
 }
@@ -235,6 +239,8 @@ async function ResponsesSection({ requestId }: { requestId: string }) {
     attachmentsByResponseId.set(attachment.response_id, list);
   }
 
+  const supplierLabels = await getSupplierLabelMap(supabase, requestId);
+
   return (
     <div className="mt-10">
       <h2 className="text-lg font-medium text-zinc-900">Responses ({responses.length})</h2>
@@ -245,12 +251,13 @@ async function ResponsesSection({ requestId }: { requestId: string }) {
       </Alert>
 
       <ul className="mt-4 space-y-4">
-        {responses.map((response, index) => {
+        {responses.map((response) => {
           const introduction = introductionByResponseId.get(response.id);
           const introduced = introduction?.decision === "approved";
+          const fallbackLabel = supplierLabels.get(response.supplier_org_id) ?? "Supplier";
           const supplierLabel = introduced
-            ? revealedOrgNameById.get(response.supplier_org_id) ?? anonymousSupplierLabel(index)
-            : anonymousSupplierLabel(index);
+            ? revealedOrgNameById.get(response.supplier_org_id) ?? fallbackLabel
+            : fallbackLabel;
           const contact = introduced ? revealedProfileByUserId.get(response.created_by) : undefined;
 
           return (
@@ -316,6 +323,94 @@ async function ResponsesSection({ requestId }: { requestId: string }) {
                     requestId={requestId}
                     status={response.status}
                     hasIntroduction={!!introduction}
+                  />
+                </CardContent>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+async function MessagesSection({ requestId, providerOrgId }: { requestId: string; providerOrgId: string }) {
+  const supabase = await createClient();
+
+  const [{ data: responses }, { data: threads }] = await Promise.all([
+    supabase.from("responses").select("supplier_org_id").eq("request_id", requestId).neq("status", "draft"),
+    supabase.from("message_threads").select("id, supplier_org_id").eq("request_id", requestId),
+  ]);
+
+  const engageableSupplierIds = [
+    ...new Set([...(responses ?? []).map((r) => r.supplier_org_id), ...(threads ?? []).map((t) => t.supplier_org_id)]),
+  ];
+
+  if (engageableSupplierIds.length === 0) {
+    return (
+      <div className="mt-10">
+        <h2 className="text-lg font-medium text-zinc-900">Messages</h2>
+        <p className="mt-2 text-sm text-zinc-500">
+          You can message a supplier once they&apos;ve responded to your request.
+        </p>
+      </div>
+    );
+  }
+
+  const supplierLabels = await getSupplierLabelMap(supabase, requestId);
+  const threadIdBySupplierId = new Map((threads ?? []).map((t) => [t.supplier_org_id, t.id]));
+
+  const threadIds = (threads ?? []).map((t) => t.id);
+  const { data: allMessages } = threadIds.length
+    ? await supabase.from("messages").select("*").in("thread_id", threadIds).order("created_at", { ascending: true })
+    : { data: [] };
+  const messagesByThreadId = new Map<string, typeof allMessages>();
+  for (const message of allMessages ?? []) {
+    const list = messagesByThreadId.get(message.thread_id) ?? [];
+    list.push(message);
+    messagesByThreadId.set(message.thread_id, list);
+  }
+
+  const { data: introductions } = await supabase
+    .from("introductions")
+    .select("supplier_org_id, decision")
+    .eq("request_id", requestId)
+    .eq("decision", "approved");
+  const introducedSupplierIds = new Set((introductions ?? []).map((i) => i.supplier_org_id));
+  const { data: revealedOrgs } = introducedSupplierIds.size
+    ? await supabase.from("organisations").select("id, name").in("id", [...introducedSupplierIds])
+    : { data: [] };
+  const revealedOrgNameById = new Map((revealedOrgs ?? []).map((o) => [o.id, o.name]));
+
+  return (
+    <div className="mt-10">
+      <h2 className="text-lg font-medium text-zinc-900">Messages</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        Messages are reviewed for content that could reveal your identity or a supplier&apos;s before an
+        introduction is approved.
+      </p>
+
+      <ul className="mt-4 space-y-4">
+        {engageableSupplierIds.map((supplierOrgId) => {
+          const label = revealedOrgNameById.get(supplierOrgId) ?? supplierLabels.get(supplierOrgId) ?? "Supplier";
+          const threadId = threadIdBySupplierId.get(supplierOrgId);
+          const messages = (threadId ? messagesByThreadId.get(threadId) : undefined) ?? [];
+
+          return (
+            <li key={supplierOrgId}>
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="mb-3 font-medium text-zinc-900">{label}</h3>
+                  <MessageThread
+                    messages={messages.map((m) => ({
+                      id: m.id,
+                      body: m.body,
+                      createdAt: m.created_at,
+                      isOwnMessage: m.sender_org_id === providerOrgId,
+                      senderLabel: m.sender_org_id === providerOrgId ? "You" : label,
+                    }))}
+                    onSend={sendProviderMessage.bind(null, requestId, supplierOrgId)}
+                    emptyLabel="No messages yet - say hello or ask a question."
                   />
                 </CardContent>
               </Card>

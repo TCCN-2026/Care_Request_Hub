@@ -5,7 +5,6 @@ This build delivers the smallest working version of the core loop, as requested 
 ## Deferred features (not built in this slice)
 
 - **Supplier verification document upload** — file attachments are built for requests and responses (see below), but the supplier onboarding form still doesn't accept verification documents; admins verify suppliers on trust for now.
-- **Messaging / clarification threads** — no in-request Q&A between provider and supplier.
 - **Multi-member organisation teams** — one user per organisation. The schema has `organisation_members` and role columns (`owner`/`manager`/`contributor`/`viewer`) ready for this, and RLS policies are written against membership rather than a single owner column, but there's no invite flow and onboarding always creates the user as `owner`.
 - **Real transactional email delivery** — the Resend abstraction logs to console when `RESEND_API_KEY` is unset (the default for local dev). Wiring a real key makes it send for real; no other code changes needed.
 - **HighLevel integration** — not started. Nothing in this codebase assumes or depends on it.
@@ -45,10 +44,20 @@ Requests and responses now support file attachments: a private Supabase Storage 
 
 Not included in this pass: a file count/size indicator on the opportunity feed cards, virus scanning, and image thumbnails/previews (downloads only, no inline preview).
 
+## Messaging (added after attachments)
+
+Providers and suppliers can exchange threaded messages about a request - one thread per (request, supplier) pair, so different suppliers' conversations are fully isolated from each other and from anyone else. Identity is hidden with role labels ("You" / "Supplier A", matching the same label used in the response comparison view, computed once and shared between both) until an introduction is approved, at which point real organisation names appear automatically - the reveal isn't a separate code path, it just follows from `organisations`/`profiles` RLS finally allowing the query through, the same mechanism already used for responses.
+
+Every message passes through a database trigger that flags ones which look like they contain an email address, a phone number, or a request to move the conversation off-platform (WhatsApp, "call me", etc.) - always recomputed server-side, so a client can't submit a fake "clean" flag. Admins see flagged messages (with real names) at `/admin/messages` and on each request's detail page; providers and suppliers never see the flag itself, only the message content, so the mechanism doesn't tip off anyone trying to route around it. It's a review heuristic, not a hard block - flagged messages still send.
+
+Not included: editing or deleting a sent message, an "unflag"/resolve action for admins, real-time delivery (the thread reloads on send/refresh, no live updates from the other party), and messaging before a supplier has engaged with a request at all (a provider can only open a thread with a supplier who's already responded, since they'd otherwise have no organisation id to address - suppliers can message before responding, as a clarification-question path).
+
+Covered by `src/lib/integration/messages.test.ts`: cross-supplier thread isolation (can't read, can't insert into another supplier's thread even by guessing its id), identity staying hidden through a live conversation until introduction approval, and the flagging trigger catching email/phone/off-platform content sent through real authenticated RLS-gated inserts (not just admin-authored rows) - including proof that a client-supplied `flagged: false` is ignored.
+
 ## Recommended next five tasks
 
 1. Build the admin category/region management screens and expand the seeded category list to match the full spec.
 2. Add supplier verification document upload during onboarding, reusing the attachment infrastructure now in place.
-3. Add in-request messaging/clarification threads with the moderation flags described in the spec (email/phone-number detection).
-4. Persist terms acceptance (`terms_versions` / `terms_acceptances`) and build the draft legal pages.
+3. Persist terms acceptance (`terms_versions` / `terms_acceptances`) and build the draft legal pages.
+4. Add a notification-centre UI on top of the existing `notifications` table (already populated by triggers; there's just no page to read it yet), and extend it to cover new messages and flagged-message review.
 5. Add Playwright e2e tests covering the full UI click-path for the 12 scenarios listed in the original spec (now feasible to include file upload, since Playwright *can* drive a native file input where this session's remote-browser tool couldn't), complementing the existing RLS integration tests.

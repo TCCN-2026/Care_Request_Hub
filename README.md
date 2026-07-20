@@ -18,9 +18,12 @@ Implemented and verified end-to-end:
 
 Location matching uses a postcode prefix (e.g. `KA5`) rather than broad regions: a provider's request carries one prefix, a supplier lists the prefixes it covers (e.g. `KA` covers `KA1`–`KA30`).
 
-Also built: **file attachments** for requests and responses (Supabase Storage, private bucket, signed time-limited download URLs). Providers choose per-file whether it's visible to matched suppliers before introduction or kept private; RLS on `storage.objects` mirrors the request/response access rules so a file can never leak to someone who couldn't already see its metadata.
+Also built:
 
-Deliberately **not** built in this slice (see [LIMITATIONS.md](LIMITATIONS.md) for the full list): supplier verification document upload, in-app messaging/clarification threads, multi-member organisation teams, real transactional email delivery, HighLevel integration, the full 25-category/region admin screens, audit log UI, complaints, terms-acceptance records, and super-admin vs admin distinction.
+- **File attachments** for requests and responses (Supabase Storage, private bucket, signed time-limited download URLs). Providers choose per-file whether it's visible to matched suppliers before introduction or kept private; RLS on `storage.objects` mirrors the request/response access rules so a file can never leak to someone who couldn't already see its metadata.
+- **Threaded messaging** between a provider and a specific supplier about a request - one thread per (request, supplier) pair, fully isolated from other suppliers' threads. Role labels ("You" / "Supplier A") until an introduction is approved, then real names appear automatically via the same RLS that already gates them elsewhere. Every message passes through a database trigger that flags likely email addresses, phone numbers, or requests to move off-platform, visible to admins at `/admin/messages` - a review heuristic, not a hard block, and never shown to the two parties themselves.
+
+Deliberately **not** built in this slice (see [LIMITATIONS.md](LIMITATIONS.md) for the full list): supplier verification document upload, multi-member organisation teams, real transactional email delivery, HighLevel integration, the full 25-category/region admin screens, audit log UI, complaints, terms-acceptance records, and super-admin vs admin distinction.
 
 ## Stack
 
@@ -113,7 +116,7 @@ Email notifications use a Resend-compatible abstraction (`src/lib/email/send.ts`
 `npm run test` runs:
 
 - **Unit tests** (always run, no network) — Zod validation schemas, the anonymous-request serializer's allow-list, status-label completeness.
-- **Integration tests** (skipped automatically unless `.env.local` has Supabase credentials) — hit the live database to prove the actual RLS policies and triggers, not just application intent: anonymous access is blocked, a supplier can never read a provider org (or vice versa) before an introduction, unverified suppliers see zero requests, one supplier can't see another's response, duplicate responses are rejected, contact details are gated on an approved introduction, and (in `src/lib/integration/attachments.test.ts`) file attachment storage RLS - private vs. supplier-visible files, cross-supplier response attachment isolation, and forged-path upload rejection.
+- **Integration tests** (skipped automatically unless `.env.local` has Supabase credentials) — hit the live database to prove the actual RLS policies and triggers, not just application intent: anonymous access is blocked, a supplier can never read a provider org (or vice versa) before an introduction, unverified suppliers see zero requests, one supplier can't see another's response, duplicate responses are rejected, contact details are gated on an approved introduction, file attachment storage RLS (`src/lib/integration/attachments.test.ts`), and messaging - cross-supplier thread isolation, identity hidden until introduction, and the contact-info flagging trigger catching real RLS-gated inserts (`src/lib/integration/messages.test.ts`).
 
 Playwright end-to-end tests are not included in this slice — the integration test suite above covers the equivalent permission/anonymity guarantees at the database layer, which is where they're actually enforced.
 

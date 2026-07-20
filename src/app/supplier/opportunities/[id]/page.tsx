@@ -11,6 +11,8 @@ import { uploadResponseAttachment, deleteResponseAttachment } from "./attachment
 import { getRequestAttachmentDownloadUrl, getResponseAttachmentDownloadUrl } from "@/lib/attachments/actions";
 import { AttachmentUploadForm } from "@/components/attachments/attachment-upload-form";
 import { AttachmentList } from "@/components/attachments/attachment-list";
+import { sendSupplierMessage } from "./message-actions";
+import { MessageThread } from "@/components/messages/message-thread";
 
 export default async function OpportunityDetailPage({
   params,
@@ -62,6 +64,17 @@ export default async function OpportunityDetailPage({
         .eq("response_id", response.id)
         .order("created_at", { ascending: true })
     : { data: [] };
+
+  const { data: thread } = await supabase
+    .from("message_threads")
+    .select("id")
+    .eq("request_id", id)
+    .eq("supplier_org_id", orgId)
+    .maybeSingle();
+  const { data: threadMessages } = thread
+    ? await supabase.from("messages").select("*").eq("thread_id", thread.id).order("created_at", { ascending: true })
+    : { data: [] };
+  const canMessage = opportunity.status === "open" || !!thread;
 
   let providerContact: { orgName: string; fullName: string; email: string | null; phone: string | null } | null =
     null;
@@ -234,6 +247,31 @@ export default async function OpportunityDetailPage({
           </>
         )}
       </div>
+
+      {canMessage && (
+        <div className="mt-10">
+          <h2 className="text-lg font-medium text-zinc-900">Messages</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Messages are reviewed for content that could reveal your identity or the provider&apos;s before an
+            introduction is approved.
+          </p>
+          <Card className="mt-4">
+            <CardContent className="pt-6">
+              <MessageThread
+                messages={(threadMessages ?? []).map((m) => ({
+                  id: m.id,
+                  body: m.body,
+                  createdAt: m.created_at,
+                  isOwnMessage: m.sender_org_id === orgId,
+                  senderLabel: m.sender_org_id === orgId ? "You" : providerContact?.orgName ?? "Provider",
+                }))}
+                onSend={sendSupplierMessage.bind(null, id)}
+                emptyLabel="No messages yet - say hello or ask a question."
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

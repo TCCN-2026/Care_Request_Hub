@@ -22,6 +22,10 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Integration tests make several sequential round-trips to the live
+    // Supabase project each - the 5s default is too tight for that even
+    // under normal load.
+    testTimeout: 20000,
   },
   resolve: {
     alias: {

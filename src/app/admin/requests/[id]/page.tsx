@@ -6,6 +6,7 @@ import { requestStatusLabels, requestStatusBadgeVariant } from "@/lib/domain/sta
 import { ApproveRequestButton, CloseRequestButton } from "./admin-request-actions";
 import { getRequestAttachmentDownloadUrl } from "@/lib/attachments/actions";
 import { AttachmentList } from "@/components/attachments/attachment-list";
+import { MessageThread } from "@/components/messages/message-thread";
 
 export default async function AdminRequestDetailPage({
   params,
@@ -101,6 +102,80 @@ export default async function AdminRequestDetailPage({
         {request.status === "submitted" && <ApproveRequestButton id={request.id} />}
         {request.status === "open" && <CloseRequestButton id={request.id} />}
       </div>
+
+      <AdminMessages requestId={id} providerName={providerOrg?.name ?? "Provider"} />
+    </div>
+  );
+}
+
+async function AdminMessages({ requestId, providerName }: { requestId: string; providerName: string }) {
+  const supabase = await createClient();
+
+  const { data: threads } = await supabase
+    .from("message_threads")
+    .select("id, supplier_org_id")
+    .eq("request_id", requestId);
+
+  if (!threads || threads.length === 0) {
+    return (
+      <div className="mt-10">
+        <h2 className="text-lg font-medium text-zinc-900">Messages</h2>
+        <p className="mt-2 text-sm text-zinc-500">No conversations yet.</p>
+      </div>
+    );
+  }
+
+  const supplierOrgIds = threads.map((t) => t.supplier_org_id);
+  const threadIds = threads.map((t) => t.id);
+
+  const [{ data: supplierOrgs }, { data: allMessages }] = await Promise.all([
+    supabase.from("organisations").select("id, name").in("id", supplierOrgIds),
+    supabase.from("messages").select("*").in("thread_id", threadIds).order("created_at", { ascending: true }),
+  ]);
+  const supplierNameById = new Map((supplierOrgs ?? []).map((o) => [o.id, o.name]));
+
+  const messagesByThreadId = new Map<string, typeof allMessages>();
+  for (const message of allMessages ?? []) {
+    const list = messagesByThreadId.get(message.thread_id) ?? [];
+    list.push(message);
+    messagesByThreadId.set(message.thread_id, list);
+  }
+
+  return (
+    <div className="mt-10">
+      <h2 className="text-lg font-medium text-zinc-900">Messages</h2>
+      <p className="mt-1 text-sm text-zinc-500">Admins see real organisation names; providers and suppliers don&apos;t, until an introduction is approved.</p>
+
+      <ul className="mt-4 space-y-4">
+        {threads.map((thread) => {
+          const supplierName = supplierNameById.get(thread.supplier_org_id) ?? "Unknown supplier";
+          const messages = messagesByThreadId.get(thread.id) ?? [];
+
+          return (
+            <li key={thread.id}>
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="mb-3 font-medium text-zinc-900">
+                    {providerName} &harr; {supplierName}
+                  </h3>
+                  <MessageThread
+                    messages={messages.map((m) => ({
+                      id: m.id,
+                      body: m.body,
+                      createdAt: m.created_at,
+                      isOwnMessage: false,
+                      senderLabel: m.sender_org_id === thread.supplier_org_id ? supplierName : providerName,
+                      flagged: m.flagged,
+                      flagReason: m.flag_reason,
+                    }))}
+                    showFlags
+                  />
+                </CardContent>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
