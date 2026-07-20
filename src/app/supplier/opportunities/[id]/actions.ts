@@ -5,9 +5,28 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentOrg } from "@/lib/auth/current-org";
 import { responseFormSchema, type ResponseFormInput } from "@/lib/validation/response";
+import { notifyUserByEmail } from "@/lib/notifications/notify-email";
 
 export interface ResponseActionResult {
   error?: string;
+}
+
+async function notifyProviderOfNewResponse(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  requestId: string,
+) {
+  const { data: request } = await supabase
+    .from("requests")
+    .select("reference, created_by")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (request) {
+    await notifyUserByEmail(
+      request.created_by,
+      `New response to ${request.reference}`,
+      "A supplier has submitted a response to your request. Sign in to Care Request Hub to review it.",
+    );
+  }
 }
 
 function toRow(input: ResponseFormInput) {
@@ -61,6 +80,7 @@ export async function createResponse(
     if (submitError) {
       return { error: submitError.message };
     }
+    await notifyProviderOfNewResponse(supabase, requestId);
   }
 
   revalidatePath("/supplier/opportunities");
@@ -91,10 +111,16 @@ export async function updateResponse(
 
 export async function submitResponse(id: string): Promise<ResponseActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.from("responses").update({ status: "submitted" }).eq("id", id);
+  const { data: updated, error } = await supabase
+    .from("responses")
+    .update({ status: "submitted" })
+    .eq("id", id)
+    .select("request_id")
+    .single();
   if (error) {
     return { error: error.message };
   }
+  await notifyProviderOfNewResponse(supabase, updated.request_id);
   revalidatePath("/supplier/opportunities");
   revalidatePath("/supplier/responses");
   return {};
