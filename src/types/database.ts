@@ -25,6 +25,7 @@ export interface Database {
           status: OrganisationStatus;
           postcode_prefix: string | null;
           coverage_prefixes: string[];
+          is_ccn_member: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -91,6 +92,7 @@ export interface Database {
           postcode_prefix: string;
           closing_date: string;
           status: RequestStatus;
+          paid_per_request: boolean;
           created_by: string;
           approved_by: string | null;
           submitted_at: string | null;

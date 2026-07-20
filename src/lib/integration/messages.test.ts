@@ -51,6 +51,9 @@ async function joinOrg(
       status: "active",
       postcode_prefix: org.postcodePrefix ?? null,
       coverage_prefixes: org.coveragePrefixes ?? [],
+      // Membership gating has its own dedicated tests in
+      // membership.test.ts - these fixtures need to be fully operational.
+      is_ccn_member: org.type === "supplier",
     })
     .select("id")
     .single();

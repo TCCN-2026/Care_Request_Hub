@@ -38,6 +38,21 @@ export async function approveAndPublishRequest(id: string): Promise<AdminActionR
   return {};
 }
 
+export async function approveAsPaidPerRequest(id: string): Promise<AdminActionResult> {
+  const { orgType } = await requireCurrentOrg();
+  if (orgType !== "platform_admin") {
+    return { error: "Only admins can approve requests." };
+  }
+
+  const supabase = await createClient();
+  const { error: flagError } = await supabase.from("requests").update({ paid_per_request: true }).eq("id", id);
+  if (flagError) {
+    return { error: flagError.message };
+  }
+
+  return approveAndPublishRequest(id);
+}
+
 export async function closeRequestToResponses(id: string): Promise<AdminActionResult> {
   const { orgType } = await requireCurrentOrg();
   if (orgType !== "platform_admin") {

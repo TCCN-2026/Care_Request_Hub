@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentOrg } from "@/lib/auth/current-org";
 import { toSupplierVisibleRequest } from "@/lib/domain/serialize";
@@ -8,6 +9,23 @@ import { toSupplierVisibleRequest } from "@/lib/domain/serialize";
 export default async function SupplierOpportunitiesPage() {
   const { orgId } = await requireCurrentOrg();
   const supabase = await createClient();
+
+  const { data: org } = await supabase.from("organisations").select("is_ccn_member").eq("id", orgId).maybeSingle();
+
+  if (!org?.is_ccn_member) {
+    return (
+      <div>
+        <h1 className="text-2xl font-semibold text-zinc-900">Opportunities</h1>
+        <Alert className="mt-6">
+          <AlertTitle>You need to be a CCN member to see live requests</AlertTitle>
+          <AlertDescription>
+            Your organisation isn&apos;t currently a CCN member, so it can&apos;t view or respond to live
+            requests. Contact The Care Connector Network to become a member.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   // RLS already restricts this to open requests matching this supplier's
   // categories and postcode coverage - the explicit column list is a

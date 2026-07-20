@@ -54,10 +54,24 @@ Not included: editing or deleting a sent message, an "unflag"/resolve action for
 
 Covered by `src/lib/integration/messages.test.ts`: cross-supplier thread isolation (can't read, can't insert into another supplier's thread even by guessing its id), identity staying hidden through a live conversation until introduction approval, and the flagging trigger catching email/phone/off-platform content sent through real authenticated RLS-gated inserts (not just admin-authored rows) - including proof that a client-supplied `flagged: false` is ignored.
 
+## Membership gating (added after messaging)
+
+Membership is a manual admin flag for now - `organisations.is_ccn_member`, no automatic checking or payment processing. Suppliers need it (in addition to verification) to view or respond to live requests, checked by a shared `is_eligible_supplier()` function used consistently across every policy that gates supplier access (requests, responses, attachments, messaging). Providers get 5 free live requests - "live" meaning the request has ever been approved (`approved_at is not null`), which is permanent even if the request is later closed or cancelled - after which further approvals are blocked by a database trigger unless the organisation is a member (no limit at all) or an admin has marked that specific request `paid_per_request` (a one-off pass, consumed by that single approval). The gate applies to admin too, deliberately - admin is the one being asked to grant membership or the one-off pass in the first place.
+
+Closed a real pre-existing gap while building this: `organisations` had no field-level update restriction, so any org could already self-update its own `status` (a supplier could have self-verified) via a plain table update - RLS only checked "is this my org." Now a trigger blocks non-admin changes to `type`, `status`, and the new `is_ccn_member`, while still allowing self-service profile edits (name, postcode prefix, coverage areas). The same protection covers `requests.paid_per_request` - a provider can never set that on their own request, at insert or update.
+
+Admin screens: `/admin/organisations` lists every provider (with live-request usage) and supplier (with membership status) with a one-click toggle; the admin request detail page shows a provider's usage inline and offers "Approve as paid one-off" specifically when a submitted request would otherwise be blocked.
+
+Not included: automatic/payment-based membership, a grace period or warning before hitting the limit (the dashboard shows remaining count, but there's no proactive notification), and re-requesting a paid-per-request pass is a plain admin toggle rather than a tracked payment record.
+
+Covered by `src/lib/integration/membership.test.ts`: a 6th live request blocked for a non-member provider, membership removing the limit entirely, a one-off paid approval letting exactly one extra request through (and the next one blocked again), a non-member verified supplier seeing zero live requests (restored once membership is granted), and - since the whole feature is meaningless without it - that neither a provider nor a supplier can grant itself membership or mark its own request paid-per-request.
+
+A minor test-hygiene note surfaced while building this: the integration test suites' cleanup (`afterAll`) is intentionally best-effort (wrapped in `try/catch`, so a cleanup failure doesn't fail the test run) - across many iterations while debugging this feature, that silently let ~190 leftover test users/organisations accumulate in the Supabase project without any signal. Manually cleaned up; worth an occasional manual sweep (`organisations.name ilike '%Vitest%'`) rather than over-engineering retry logic into cleanup code for what's a private dev project.
+
 ## Recommended next five tasks
 
 1. Build the admin category/region management screens and expand the seeded category list to match the full spec.
 2. Add supplier verification document upload during onboarding, reusing the attachment infrastructure now in place.
 3. Persist terms acceptance (`terms_versions` / `terms_acceptances`) and build the draft legal pages.
-4. Add a notification-centre UI on top of the existing `notifications` table (already populated by triggers; there's just no page to read it yet), and extend it to cover new messages and flagged-message review.
+4. Add a notification-centre UI on top of the existing `notifications` table (already populated by triggers; there's just no page to read it yet), and extend it to cover new messages, flagged-message review, and providers approaching their free-request limit.
 5. Add Playwright e2e tests covering the full UI click-path for the 12 scenarios listed in the original spec (now feasible to include file upload, since Playwright *can* drive a native file input where this session's remote-browser tool couldn't), complementing the existing RLS integration tests.

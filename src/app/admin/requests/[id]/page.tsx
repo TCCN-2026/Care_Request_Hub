@@ -7,6 +7,7 @@ import { ApproveRequestButton, CloseRequestButton } from "./admin-request-action
 import { getRequestAttachmentDownloadUrl } from "@/lib/attachments/actions";
 import { AttachmentList } from "@/components/attachments/attachment-list";
 import { MessageThread } from "@/components/messages/message-thread";
+import { getProviderLiveRequestCount, FREE_LIVE_REQUEST_LIMIT } from "@/lib/domain/membership";
 
 export default async function AdminRequestDetailPage({
   params,
@@ -23,9 +24,13 @@ export default async function AdminRequestDetailPage({
 
   const { data: providerOrg } = await supabase
     .from("organisations")
-    .select("name, postcode_prefix")
+    .select("name, postcode_prefix, is_ccn_member")
     .eq("id", request.provider_org_id)
     .maybeSingle();
+
+  const liveRequestCount = await getProviderLiveRequestCount(supabase, request.provider_org_id);
+  const blockedByLimit =
+    !providerOrg?.is_ccn_member && !request.paid_per_request && liveRequestCount >= FREE_LIVE_REQUEST_LIMIT;
 
   const { data: category } = await supabase
     .from("categories")
@@ -49,6 +54,12 @@ export default async function AdminRequestDetailPage({
       </div>
       <p className="mt-1 text-sm text-zinc-500">
         {request.reference} &middot; {providerOrg?.name ?? "Unknown organisation"} &middot; {category?.name}
+      </p>
+      <p className="mt-1 text-sm text-zinc-500">
+        {providerOrg?.is_ccn_member
+          ? "CCN member - unlimited live requests"
+          : `${liveRequestCount} of ${FREE_LIVE_REQUEST_LIMIT} free live requests used`}
+        {request.paid_per_request && " · Marked paid-per-request"}
       </p>
 
       <Card className="mt-6">
@@ -99,7 +110,9 @@ export default async function AdminRequestDetailPage({
       </Card>
 
       <div className="mt-6 flex gap-3">
-        {request.status === "submitted" && <ApproveRequestButton id={request.id} />}
+        {request.status === "submitted" && (
+          <ApproveRequestButton id={request.id} blockedByLimit={blockedByLimit} />
+        )}
         {request.status === "open" && <CloseRequestButton id={request.id} />}
       </div>
 

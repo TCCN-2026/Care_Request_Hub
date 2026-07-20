@@ -10,7 +10,7 @@ export default async function SupplierDashboardPage() {
 
   const { data: org } = await supabase
     .from("organisations")
-    .select("status")
+    .select("status, is_ccn_member")
     .eq("id", orgId)
     .maybeSingle();
 
@@ -45,6 +45,16 @@ export default async function SupplierDashboardPage() {
         </Alert>
       )}
 
+      {org?.status === "active" && !org.is_ccn_member && (
+        <Alert className="mt-6">
+          <AlertTitle>You need to be a CCN member to see live requests</AlertTitle>
+          <AlertDescription>
+            Your organisation is verified, but only CCN members can view or respond to live requests.
+            Contact The Care Connector Network to become a member.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader>
@@ -66,7 +76,7 @@ export default async function SupplierDashboardPage() {
         </Card>
       </div>
 
-      {org?.status === "active" && (
+      {org?.status === "active" && org.is_ccn_member && (
         <div className="mt-8">
           <Link href="/supplier/opportunities" className="text-sm font-medium text-zinc-900 underline underline-offset-2">
             View open opportunities

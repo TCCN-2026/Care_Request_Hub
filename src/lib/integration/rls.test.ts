@@ -60,6 +60,10 @@ async function joinOrg(
       status: org.status ?? "active",
       postcode_prefix: org.postcodePrefix ?? null,
       coverage_prefixes: org.coveragePrefixes ?? [],
+      // These tests are about other RLS concerns and need a supplier
+      // fixture to be fully operational by default - membership gating
+      // has its own dedicated tests in membership.test.ts.
+      is_ccn_member: org.type === "supplier",
     })
     .select("id")
     .single();

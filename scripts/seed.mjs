@@ -38,8 +38,8 @@ async function getOrCreateUser(email, accountType) {
   return data.user.id;
 }
 
-async function getOrCreateOrg({ type, name, status, postcodePrefix, coveragePrefixes, ownerId, profile }) {
-  const { data: existing } = await admin.from("organisations").select("id").eq("name", name).maybeSingle();
+async function getOrCreateOrg({ type, name, status, postcodePrefix, coveragePrefixes, isMember, ownerId, profile }) {
+  const { data: existing } = await admin.from("organisations").select("id, is_ccn_member").eq("name", name).maybeSingle();
   let orgId = existing?.id;
 
   if (!orgId) {
@@ -51,6 +51,7 @@ async function getOrCreateOrg({ type, name, status, postcodePrefix, coveragePref
         status,
         postcode_prefix: postcodePrefix ?? null,
         coverage_prefixes: coveragePrefixes ?? [],
+        is_ccn_member: isMember ?? false,
       })
       .select("id")
       .single();
@@ -59,6 +60,9 @@ async function getOrCreateOrg({ type, name, status, postcodePrefix, coveragePref
     console.log(`  created org: ${name}`);
   } else {
     console.log(`  org exists: ${name}`);
+    if (existing.is_ccn_member !== (isMember ?? false)) {
+      await admin.from("organisations").update({ is_ccn_member: isMember ?? false }).eq("id", orgId);
+    }
   }
 
   const { data: membership } = await admin
@@ -161,6 +165,7 @@ async function main() {
     type: "supplier",
     name: "Ayrshire Training Solutions",
     status: "active",
+    isMember: true,
     coveragePrefixes: ["KA"],
     ownerId: supplier1UserId,
     profile: { full_name: "Priya Shah", job_title: "Sales Lead", contact_email: "supplier1@example.com" },
@@ -178,6 +183,7 @@ async function main() {
     type: "supplier",
     name: "Glasgow IT Support Co",
     status: "active",
+    isMember: true,
     coveragePrefixes: ["G"],
     ownerId: supplier2UserId,
     profile: { full_name: "Callum Reid", job_title: "Account Manager", contact_email: "supplier2@example.com" },
