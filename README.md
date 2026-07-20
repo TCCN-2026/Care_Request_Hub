@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Care Request Hub
 
-## Getting Started
+A protected B2B request-and-supplier-matching platform for the UK care sector, hosted by The Care Connector Network. Care providers post business purchasing/service requests without exposing their identity; verified suppliers see only the anonymous version and respond; the provider chooses who to meet, and contact details are revealed only after an approved introduction.
 
-First, run the development server:
+**This build covers the core loop only** — see [Scope](#scope) below for what's deliberately not built yet.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Scope
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Implemented and verified end-to-end:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Provider signs up, completes onboarding, creates and submits a request
+- Admin approves and publishes the request
+- A verified, matching supplier sees **only** the anonymous version of the request (no provider identity, anywhere)
+- Supplier submits a structured response
+- Provider compares responses (anonymised as "Supplier A/B/C"), shortlists one
+- Provider requests an introduction; admin approves it
+- Both parties then see each other's real name and contact details
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Location matching uses a postcode prefix (e.g. `KA5`) rather than broad regions: a provider's request carries one prefix, a supplier lists the prefixes it covers (e.g. `KA` covers `KA1`–`KA30`).
 
-## Learn More
+Deliberately **not** built in this slice (see [LIMITATIONS.md](LIMITATIONS.md) for the full list): file attachments, in-app messaging/clarification threads, multi-member organisation teams, real transactional email delivery, HighLevel integration, the full 25-category/region admin screens, audit log UI, complaints, terms-acceptance records, and super-admin vs admin distinction.
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Next.js 16 (App Router, Turbopack) · TypeScript (strict) · Tailwind CSS · shadcn/ui · Supabase (Postgres, Auth, Row Level Security) · Zod · React Hook Form · Vitest
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Prerequisites
 
-## Deploy on Vercel
+- Node.js 20+ (uses `node --env-file`)
+- A Supabase project ([supabase.com](https://supabase.com), free tier, no card required)
+- The [Supabase CLI](https://supabase.com/docs/guides/cli) (`npx supabase`, no install needed) to apply migrations
+- **Docker is not required** for this workflow — migrations are pushed directly to your cloud project rather than run against a local Supabase stack. (If you do have Docker and prefer local development, `supabase start` also works with these same migration files.)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Local setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Create a Supabase project**, then from **Project Settings → API** copy the Project URL, anon/publishable key, and service_role/secret key. From **Project Settings → Database → Connection pooling**, note the pooler hostname (e.g. `aws-0-eu-west-1.pooler.supabase.com`) — direct connections are IPv6-only, so most networks need the pooler for the CLI steps below.
+
+3. **Configure environment variables**
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Leave `RESEND_API_KEY` and the HighLevel variables empty for local dev — see [Notifications](#notifications) below.
+
+4. **Apply database migrations**
+
+   ```bash
+   npx supabase db push --db-url "postgresql://postgres.<project-ref>:<url-encoded-password>@<pooler-host>:5432/postgres"
+   ```
+
+   Replace `<project-ref>` (from your project URL), `<url-encoded-password>` (your database password, set at project creation — percent-encode any special characters, e.g. `@` → `%40`), and `<pooler-host>` with the values from step 2. This runs all files in `supabase/migrations/` in order — schema, RLS policies, triggers, and seed categories.
+
+5. **Seed demo data**
+
+   ```bash
+   npm run seed
+   ```
+
+   Creates fictional demo accounts and sample requests/responses/an introduction (see [Demo accounts](#demo-accounts)). Safe to re-run — it's idempotent.
+
+6. **Run the dev server**
+
+   ```bash
+   npm run dev
+   ```
+
+   Open the printed local URL (defaults to `http://localhost:3000`, but picks a free port if that one's in use).
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run test` | Vitest — unit tests always run; live Supabase integration tests run only when `.env.local` has credentials (skipped otherwise) |
+| `npm run seed` | Idempotent demo data seed |
+
+## Demo accounts
+
+Created by `npm run seed`. Password for all: `DemoPass123!`
+
+| Email | Role | Notes |
+| --- | --- | --- |
+| `admin@example.com` | Admin | Full visibility, approves requests/suppliers/introductions |
+| `provider1@example.com` | Provider | Ayrshire Care Homes Group (KA5) — has an open request with a shortlisted response |
+| `provider2@example.com` | Provider | Glasgow Residential Care Ltd (G2) — has a request with an **approved introduction** (log in as this or `supplier2@example.com` to see revealed contact details) |
+| `supplier1@example.com` | Supplier | Ayrshire Training Solutions — verified, covers KA |
+| `supplier2@example.com` | Supplier | Glasgow IT Support Co — verified, covers G |
+| `supplier3@example.com` | Supplier | Pending Verification Supplies Ltd — **not yet verified**, log in as `admin@example.com` to verify it via Suppliers |
+
+These are placeholder accounts with obviously fictional names on `example.com` — never point this seed script at a production project.
+
+## Notifications
+
+In-app notifications (visible via a `notifications` table, no UI page built yet in this slice) are created automatically by Postgres triggers on the key events: request approved, response submitted, introduction decided.
+
+Email notifications use a Resend-compatible abstraction (`src/lib/email/send.ts`). With no `RESEND_API_KEY` set, it logs to the server console instead of sending — this is the default for local dev, so you don't need an email provider to exercise the full loop.
+
+## Tests
+
+`npm run test` runs:
+
+- **Unit tests** (always run, no network) — Zod validation schemas, the anonymous-request serializer's allow-list, status-label completeness.
+- **Integration tests** (skipped automatically unless `.env.local` has Supabase credentials) — hit the live database to prove the actual RLS policies and triggers, not just application intent: anonymous access is blocked, a supplier can never read a provider org (or vice versa) before an introduction, unverified suppliers see zero requests, one supplier can't see another's response, duplicate responses are rejected, and contact details are gated on an approved introduction.
+
+Playwright end-to-end tests are not included in this slice — the integration test suite above covers the equivalent permission/anonymity guarantees at the database layer, which is where they're actually enforced.
+
+## Deployment
+
+Not deployed as part of this build. To deploy:
+
+1. Push this repository to GitHub.
+2. Apply `supabase/migrations/` to your production Supabase project (same `supabase db push` command as local setup, pointed at the production project).
+3. Import the repo into Vercel, set the environment variables from `.env.example` in the Vercel project settings (**never** commit real values), and deploy.
+4. `SUPABASE_SERVICE_ROLE_KEY` must only ever be set as a server-side environment variable — it is never read by client code in this codebase (grep confirms no `NEXT_PUBLIC_` prefix on it).
+
+## Known limitations
+
+See [LIMITATIONS.md](LIMITATIONS.md) for the full list of what's deliberately deferred, plus a couple of accepted trade-offs (e.g. Next.js's bundled PostCSS has an unpatched moderate advisory; fixing it via `npm audit fix --force` would downgrade Next.js itself, so it's left as-is).
