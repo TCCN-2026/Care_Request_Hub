@@ -4,7 +4,7 @@ This build delivers the smallest working version of the core loop, as requested 
 
 ## Deferred features (not built in this slice)
 
-- **Attachments** — no file upload for requests, responses, or supplier verification documents (Supabase Storage isn't wired up).
+- **Supplier verification document upload** — file attachments are built for requests and responses (see below), but the supplier onboarding form still doesn't accept verification documents; admins verify suppliers on trust for now.
 - **Messaging / clarification threads** — no in-request Q&A between provider and supplier.
 - **Multi-member organisation teams** — one user per organisation. The schema has `organisation_members` and role columns (`owner`/`manager`/`contributor`/`viewer`) ready for this, and RLS policies are written against membership rather than a single owner column, but there's no invite flow and onboarding always creates the user as `owner`.
 - **Real transactional email delivery** — the Resend abstraction logs to console when `RESEND_API_KEY` is unset (the default for local dev). Wiring a real key makes it send for real; no other code changes needed.
@@ -39,10 +39,16 @@ Worth knowing about even though fixed, since they show up in the migration histo
 - The supplier coverage-prefix validation reused the single-postcode regex (which requires a digit, e.g. `KA5`), silently rejecting valid broad coverage areas like `KA`.
 - Three separate write-rule triggers (`introductions` insert, `requests`/`responses` update, `introductions` decision) unconditionally required an authenticated actor matching a specific role, so trusted service-role writes (the seed script, and any future backend job) were silently rejected with "Not authorised" even though they'd already bypassed RLS entirely. Fixed by trusting a null `auth.uid()` as an already-trusted caller in each.
 
+## Attachments (added after the initial core-loop build)
+
+Requests and responses now support file attachments: a private Supabase Storage bucket, `storage.objects` RLS policies that mirror the request/response access rules (keyed by path, so a file can never leak to someone who couldn't already see its metadata row), and signed 5-minute download URLs. Providers choose per-file whether it's visible to matched suppliers before introduction or kept private; suppliers get an anonymity warning on response attachments, since a file with their letterhead could reveal their identity before an introduction is approved. Covered by dedicated integration tests (`src/lib/integration/attachments.test.ts`) rather than browser e2e, since the remote browser tooling used to build this can't drive a native OS file picker — see that test file for what's actually exercised (private-vs-visible access, cross-supplier isolation, forged-path upload rejection).
+
+Not included in this pass: a file count/size indicator on the opportunity feed cards, virus scanning, and image thumbnails/previews (downloads only, no inline preview).
+
 ## Recommended next five tasks
 
 1. Build the admin category/region management screens and expand the seeded category list to match the full spec.
-2. Add file attachments (Supabase Storage) for requests, responses, and supplier verification documents, with signed time-limited URLs.
+2. Add supplier verification document upload during onboarding, reusing the attachment infrastructure now in place.
 3. Add in-request messaging/clarification threads with the moderation flags described in the spec (email/phone-number detection).
 4. Persist terms acceptance (`terms_versions` / `terms_acceptances`) and build the draft legal pages.
-5. Add Playwright e2e tests covering the full UI click-path for the 12 scenarios listed in the original spec, complementing the existing RLS integration tests.
+5. Add Playwright e2e tests covering the full UI click-path for the 12 scenarios listed in the original spec (now feasible to include file upload, since Playwright *can* drive a native file input where this session's remote-browser tool couldn't), complementing the existing RLS integration tests.
