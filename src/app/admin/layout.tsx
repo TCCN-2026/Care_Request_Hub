@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/layout/app-header";
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/requests", label: "Requests" },
+  { href: "/admin/suppliers", label: "Suppliers" },
   { href: "/admin/introductions", label: "Introductions" },
 ];
 

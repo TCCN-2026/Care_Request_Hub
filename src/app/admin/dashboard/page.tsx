@@ -19,7 +19,7 @@ export default async function AdminDashboardPage() {
 
   const tiles = [
     { label: "Requests awaiting review", value: pendingRequests ?? 0, href: "/admin/requests" },
-    { label: "Suppliers awaiting verification", value: pendingSuppliers ?? 0, href: "/admin/requests" },
+    { label: "Suppliers awaiting verification", value: pendingSuppliers ?? 0, href: "/admin/suppliers" },
     { label: "Live requests", value: openRequests ?? 0, href: "/admin/requests" },
     { label: "Introduction requests pending", value: pendingIntroductions ?? 0, href: "/admin/introductions" },
   ];

@@ -23,7 +23,22 @@ export interface SupplierVisibleRequest {
   createdAt: string;
 }
 
-export function toSupplierVisibleRequest(row: RequestRow): SupplierVisibleRequest {
+type SupplierVisibleRequestSource = Pick<
+  RequestRow,
+  | "id"
+  | "reference"
+  | "title"
+  | "category_id"
+  | "description"
+  | "desired_outcome"
+  | "mandatory_requirements"
+  | "postcode_prefix"
+  | "closing_date"
+  | "status"
+  | "created_at"
+>;
+
+export function toSupplierVisibleRequest(row: SupplierVisibleRequestSource): SupplierVisibleRequest {
   return {
     id: row.id,
     reference: row.reference,
