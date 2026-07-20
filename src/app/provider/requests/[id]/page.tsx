@@ -13,6 +13,10 @@ import { anonymousSupplierLabel } from "@/lib/domain/serialize";
 import { RequestForm } from "../request-form";
 import { SubmitRequestButton, CancelRequestButton } from "./request-actions";
 import { ResponseCardActions } from "./response-card-actions";
+import { uploadRequestAttachment, deleteRequestAttachment } from "./attachment-actions";
+import { getRequestAttachmentDownloadUrl, getResponseAttachmentDownloadUrl } from "@/lib/attachments/actions";
+import { AttachmentUploadForm } from "@/components/attachments/attachment-upload-form";
+import { AttachmentList } from "@/components/attachments/attachment-list";
 
 export default async function ProviderRequestDetailPage({
   params,
@@ -59,6 +63,17 @@ export default async function ProviderRequestDetailPage({
               confirmNoPersonalData: true,
             }}
           />
+        </div>
+
+        <div className="mt-8">
+          <h2 className="text-lg font-medium text-zinc-900">Attachments</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Choose which files suppliers can see before you introduce them. Files marked private are only ever
+            visible to you and admins.
+          </p>
+          <div className="mt-3">
+            <RequestAttachments requestId={request.id} editable />
+          </div>
         </div>
 
         <div className="mt-6">
@@ -119,7 +134,48 @@ export default async function ProviderRequestDetailPage({
         </div>
       )}
 
+      <div className="mt-10">
+        <h2 className="text-lg font-medium text-zinc-900">Attachments</h2>
+        <div className="mt-3">
+          <RequestAttachments requestId={request.id} editable={false} />
+        </div>
+      </div>
+
       <ResponsesSection requestId={request.id} />
+    </div>
+  );
+}
+
+async function RequestAttachments({ requestId, editable }: { requestId: string; editable: boolean }) {
+  const supabase = await createClient();
+  const { data: attachments } = await supabase
+    .from("request_attachments")
+    .select("*")
+    .eq("request_id", requestId)
+    .order("created_at", { ascending: true });
+
+  const items = (attachments ?? []).map((a) => ({
+    id: a.id,
+    fileName: a.file_name,
+    fileSize: a.file_size,
+    visibleToSuppliers: a.visible_to_suppliers,
+  }));
+
+  return (
+    <div className="space-y-4">
+      <AttachmentList
+        attachments={items}
+        getDownloadUrl={getRequestAttachmentDownloadUrl}
+        onDelete={editable ? deleteRequestAttachment : undefined}
+        canDelete={editable}
+      />
+      {editable && (
+        <AttachmentUploadForm
+          onUpload={uploadRequestAttachment.bind(null, requestId)}
+          visibilityToggle={{ label: "Visible to suppliers before introduction" }}
+          warning="If you mark a file visible to suppliers, avoid anything that identifies your organisation (letterhead, logo, named contacts) - your identity stays hidden until you approve an introduction."
+        />
+      )}
     </div>
   );
 }
@@ -166,6 +222,18 @@ async function ResponsesSection({ requestId }: { requestId: string }) {
     ? await supabase.from("profiles").select("*").in("id", revealedUserIds)
     : { data: [] };
   const revealedProfileByUserId = new Map((revealedProfiles ?? []).map((p) => [p.id, p]));
+
+  const { data: attachments } = await supabase
+    .from("response_attachments")
+    .select("*")
+    .in("response_id", responseIds)
+    .order("created_at", { ascending: true });
+  const attachmentsByResponseId = new Map<string, typeof attachments>();
+  for (const attachment of attachments ?? []) {
+    const list = attachmentsByResponseId.get(attachment.response_id) ?? [];
+    list.push(attachment);
+    attachmentsByResponseId.set(attachment.response_id, list);
+  }
 
   return (
     <div className="mt-10">
@@ -219,6 +287,20 @@ async function ResponsesSection({ requestId }: { requestId: string }) {
                       <p className="text-zinc-900">{response.timescale ?? "-"}</p>
                     </div>
                   </div>
+
+                  {(attachmentsByResponseId.get(response.id)?.length ?? 0) > 0 && (
+                    <div className="border-t pt-3">
+                      <p className="mb-2 text-sm font-medium text-zinc-500">Attachments</p>
+                      <AttachmentList
+                        attachments={(attachmentsByResponseId.get(response.id) ?? []).map((a) => ({
+                          id: a.id,
+                          fileName: a.file_name,
+                          fileSize: a.file_size,
+                        }))}
+                        getDownloadUrl={getResponseAttachmentDownloadUrl}
+                      />
+                    </div>
+                  )}
 
                   {introduced && contact && (
                     <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm">

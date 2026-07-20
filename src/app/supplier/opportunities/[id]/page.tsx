@@ -7,6 +7,10 @@ import { toSupplierVisibleRequest } from "@/lib/domain/serialize";
 import { responseStatusLabels, responseStatusBadgeVariant } from "@/lib/domain/status-labels";
 import { ResponseForm } from "./response-form";
 import { WithdrawResponseButton } from "./response-actions";
+import { uploadResponseAttachment, deleteResponseAttachment } from "./attachment-actions";
+import { getRequestAttachmentDownloadUrl, getResponseAttachmentDownloadUrl } from "@/lib/attachments/actions";
+import { AttachmentUploadForm } from "@/components/attachments/attachment-upload-form";
+import { AttachmentList } from "@/components/attachments/attachment-list";
 
 export default async function OpportunityDetailPage({
   params,
@@ -42,6 +46,22 @@ export default async function OpportunityDetailPage({
     .eq("request_id", id)
     .eq("supplier_org_id", orgId)
     .maybeSingle();
+
+  // RLS already restricts this to visible_to_suppliers = true rows on an
+  // open, matching request - no further filtering needed here.
+  const { data: requestAttachments } = await supabase
+    .from("request_attachments")
+    .select("*")
+    .eq("request_id", id)
+    .order("created_at", { ascending: true });
+
+  const { data: responseAttachments } = response
+    ? await supabase
+        .from("response_attachments")
+        .select("*")
+        .eq("response_id", response.id)
+        .order("created_at", { ascending: true })
+    : { data: [] };
 
   let providerContact: { orgName: string; fullName: string; email: string | null; phone: string | null } | null =
     null;
@@ -100,6 +120,15 @@ export default async function OpportunityDetailPage({
               {new Date(opportunity.closingDate).toLocaleDateString("en-GB")}
             </p>
           </div>
+          {requestAttachments && requestAttachments.length > 0 && (
+            <div className="border-t pt-4">
+              <h2 className="mb-2 text-sm font-medium text-zinc-500">Attachments</h2>
+              <AttachmentList
+                attachments={requestAttachments.map((a) => ({ id: a.id, fileName: a.file_name, fileSize: a.file_size }))}
+                getDownloadUrl={getRequestAttachmentDownloadUrl}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -137,6 +166,25 @@ export default async function OpportunityDetailPage({
                 }}
               />
             </div>
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-zinc-900">Attachments</h3>
+              <div className="mt-2 space-y-4">
+                <AttachmentList
+                  attachments={(responseAttachments ?? []).map((a) => ({
+                    id: a.id,
+                    fileName: a.file_name,
+                    fileSize: a.file_size,
+                  }))}
+                  getDownloadUrl={getResponseAttachmentDownloadUrl}
+                  onDelete={deleteResponseAttachment}
+                  canDelete
+                />
+                <AttachmentUploadForm
+                  onUpload={uploadResponseAttachment.bind(null, response.id, id)}
+                  warning="Avoid attaching anything that identifies your organisation (letterhead, logo, named contacts) - the provider can't see your identity until they approve an introduction."
+                />
+              </div>
+            </div>
           </>
         )}
 
@@ -152,6 +200,19 @@ export default async function OpportunityDetailPage({
               <CardContent className="space-y-3 pt-6">
                 <p className="whitespace-pre-wrap text-zinc-900">{response.summary}</p>
                 <p className="whitespace-pre-wrap text-zinc-700">{response.proposed_solution}</p>
+                {responseAttachments && responseAttachments.length > 0 && (
+                  <div className="border-t pt-3">
+                    <p className="mb-2 text-sm font-medium text-zinc-500">Attachments</p>
+                    <AttachmentList
+                      attachments={responseAttachments.map((a) => ({
+                        id: a.id,
+                        fileName: a.file_name,
+                        fileSize: a.file_size,
+                      }))}
+                      getDownloadUrl={getResponseAttachmentDownloadUrl}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
             {response.status === "submitted" && opportunity.status === "open" && (

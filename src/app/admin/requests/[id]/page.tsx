@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { requestStatusLabels, requestStatusBadgeVariant } from "@/lib/domain/status-labels";
 import { ApproveRequestButton, CloseRequestButton } from "./admin-request-actions";
+import { getRequestAttachmentDownloadUrl } from "@/lib/attachments/actions";
+import { AttachmentList } from "@/components/attachments/attachment-list";
 
 export default async function AdminRequestDetailPage({
   params,
@@ -29,6 +31,12 @@ export default async function AdminRequestDetailPage({
     .select("name")
     .eq("id", request.category_id)
     .maybeSingle();
+
+  const { data: attachments } = await supabase
+    .from("request_attachments")
+    .select("*")
+    .eq("request_id", id)
+    .order("created_at", { ascending: true });
 
   return (
     <div className="max-w-2xl">
@@ -72,6 +80,20 @@ export default async function AdminRequestDetailPage({
               </p>
             </div>
           </div>
+          {attachments && attachments.length > 0 && (
+            <div className="border-t pt-4">
+              <h2 className="mb-2 text-sm font-medium text-zinc-500">Attachments</h2>
+              <AttachmentList
+                attachments={attachments.map((a) => ({
+                  id: a.id,
+                  fileName: a.file_name,
+                  fileSize: a.file_size,
+                  visibleToSuppliers: a.visible_to_suppliers,
+                }))}
+                getDownloadUrl={getRequestAttachmentDownloadUrl}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

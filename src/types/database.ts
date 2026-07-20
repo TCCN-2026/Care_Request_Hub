@@ -142,6 +142,45 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["responses"]["Row"]>;
         Relationships: [];
       };
+      request_attachments: {
+        Row: {
+          id: string;
+          request_id: string;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          visible_to_suppliers: boolean;
+          uploaded_by: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["request_attachments"]["Row"]> &
+          Pick<
+            Database["public"]["Tables"]["request_attachments"]["Row"],
+            "request_id" | "storage_path" | "file_name" | "file_size" | "mime_type" | "uploaded_by"
+          >;
+        Update: Partial<Database["public"]["Tables"]["request_attachments"]["Row"]>;
+        Relationships: [];
+      };
+      response_attachments: {
+        Row: {
+          id: string;
+          response_id: string;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          uploaded_by: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["response_attachments"]["Row"]> &
+          Pick<
+            Database["public"]["Tables"]["response_attachments"]["Row"],
+            "response_id" | "storage_path" | "file_name" | "file_size" | "mime_type" | "uploaded_by"
+          >;
+        Update: Partial<Database["public"]["Tables"]["response_attachments"]["Row"]>;
+        Relationships: [];
+      };
       provider_response_notes: {
         Row: {
           response_id: string;
