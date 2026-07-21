@@ -4,6 +4,7 @@ const navItems = [
   { href: "/supplier/dashboard", label: "Dashboard" },
   { href: "/supplier/opportunities", label: "Opportunities" },
   { href: "/supplier/responses", label: "My responses" },
+  { href: "/supplier/verification", label: "Verification" },
 ];
 
 export default function SupplierLayout({ children }: { children: React.ReactNode }) {

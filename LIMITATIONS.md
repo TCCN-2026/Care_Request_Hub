@@ -4,7 +4,6 @@ This build delivers the smallest working version of the core loop, as requested 
 
 ## Deferred features (not built in this slice)
 
-- **Supplier verification document upload** — file attachments are built for requests and responses (see below), but the supplier onboarding form still doesn't accept verification documents; admins verify suppliers on trust for now.
 - **Multi-member organisation teams** — one user per organisation. The schema has `organisation_members` and role columns (`owner`/`manager`/`contributor`/`viewer`) ready for this, and RLS policies are written against membership rather than a single owner column, but there's no invite flow and onboarding always creates the user as `owner`.
 - **Real transactional email delivery** — the Resend abstraction logs to console when `RESEND_API_KEY` is unset (the default for local dev). Wiring a real key makes it send for real; no other code changes needed.
 - **HighLevel integration** — not started. Nothing in this codebase assumes or depends on it.
@@ -68,10 +67,22 @@ Covered by `src/lib/integration/membership.test.ts`: a 6th live request blocked 
 
 A minor test-hygiene note surfaced while building this: the integration test suites' cleanup (`afterAll`) is intentionally best-effort (wrapped in `try/catch`, so a cleanup failure doesn't fail the test run) - across many iterations while debugging this feature, that silently let ~190 leftover test users/organisations accumulate in the Supabase project without any signal. Manually cleaned up; worth an occasional manual sweep (`organisations.name ilike '%Vitest%'`) rather than over-engineering retry logic into cleanup code for what's a private dev project.
 
+## Supplier verification documents (added after membership gating)
+
+Suppliers upload verification documents (public liability insurance, professional indemnity insurance where applicable, and accreditations) at `/supplier/verification`, reusing the existing `attachments` Storage bucket with a new `verification/{supplier_org_id}/...` path prefix rather than a separate bucket - same size/type limits, same RLS-by-storage-path pattern as request/response attachments. Visible only to the uploading supplier and admins; a provider has no branch in the `verification_documents` RLS policy at all, unlike requests/responses where a provider legitimately needs some visibility.
+
+Each document has a status - pending review / approved / rejected - reviewable at `/admin/suppliers`, where every supplier's documents now appear inline alongside their existing verify/suspend controls. Only an admin can change a document's status (the `verification_documents_update` RLS policy requires `is_admin()`; a supplier has no UPDATE path at all), and `reviewed_by`/`reviewed_at` are always stamped server-side by a trigger, ignoring any client-supplied value - this is the self-approval prevention. A database trigger on `organisations` (`enforce_supplier_verification_gate`) blocks marking a supplier `active` unless an approved public liability insurance document already exists, applying to admin too; the existing "Verify" button now surfaces that trigger's error message in the UI if clicked too early.
+
+Not included: a required/not-required flag per document type driven by category (professional indemnity is shown as "where applicable" but not actually conditional on anything), document expiry dates/renewal reminders, and re-upload after rejection is a fresh document row rather than a version history on the same one (matches the "response version history" simplification elsewhere in this file).
+
+Covered by `src/lib/integration/verification-documents.test.ts`: a supplier can't see another supplier's documents (metadata row, storage download, and forged-path upload all blocked), a provider can never see verification documents at all (same three checks, plus providers can't upload into a `verification/` path since the storage policy requires `current_org_type() = 'supplier'`), a supplier can't self-approve their own document (RLS silently matches zero rows rather than erroring, so the test asserts the row is unchanged, then proves an admin genuinely can approve it), and the organisation-verification gate itself (blocked with no approved document, allowed once one exists).
+
+As with attachments, the remote browser tooling used to build this can't drive a native OS file picker, so the actual upload path is exercised by the integration tests above rather than a live browser click-through; the surrounding page (empty states, status badges, admin review controls, the verification-gate error message) was checked in a live browser.
+
 ## Recommended next five tasks
 
 1. Build the admin category/region management screens and expand the seeded category list to match the full spec.
-2. Add supplier verification document upload during onboarding, reusing the attachment infrastructure now in place.
-3. Persist terms acceptance (`terms_versions` / `terms_acceptances`) and build the draft legal pages.
-4. Add a notification-centre UI on top of the existing `notifications` table (already populated by triggers; there's just no page to read it yet), and extend it to cover new messages, flagged-message review, and providers approaching their free-request limit.
-5. Add Playwright e2e tests covering the full UI click-path for the 12 scenarios listed in the original spec (now feasible to include file upload, since Playwright *can* drive a native file input where this session's remote-browser tool couldn't), complementing the existing RLS integration tests.
+2. Persist terms acceptance (`terms_versions` / `terms_acceptances`) and build the draft legal pages.
+3. Add a notification-centre UI on top of the existing `notifications` table (already populated by triggers; there's just no page to read it yet), and extend it to cover new messages, flagged-message review, providers approaching their free-request limit, and verification document review decisions.
+4. Add Playwright e2e tests covering the full UI click-path for the 12 scenarios listed in the original spec (now feasible to include file upload, since Playwright *can* drive a native file input where this session's remote-browser tool couldn't), complementing the existing RLS integration tests.
+5. Add document expiry tracking and renewal reminders for verification documents (insurance policies lapse; nothing currently re-flags an approved document once its cover period has likely ended).

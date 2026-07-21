@@ -28,7 +28,7 @@ export function validateUploadedFile(file: File): { error?: string } {
  * can guess the storage path.
  */
 export async function getSignedAttachmentUrl(
-  table: "request_attachments" | "response_attachments",
+  table: "request_attachments" | "response_attachments" | "verification_documents",
   attachmentId: string,
 ): Promise<{ url?: string; error?: string }> {
   const supabase = await createClient();

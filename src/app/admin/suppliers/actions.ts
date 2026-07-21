@@ -39,3 +39,26 @@ export async function suspendSupplier(orgId: string): Promise<AdminActionResult>
   revalidatePath("/admin/suppliers");
   return {};
 }
+
+export async function reviewVerificationDocument(
+  documentId: string,
+  status: "approved" | "rejected",
+  rejectionReason: string,
+): Promise<AdminActionResult> {
+  const { orgType } = await requireCurrentOrg();
+  if (orgType !== "platform_admin") {
+    return { error: "Only admins can review verification documents." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("verification_documents")
+    .update({ status, rejection_reason: status === "rejected" ? rejectionReason || null : null })
+    .eq("id", documentId);
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/suppliers");
+  return {};
+}

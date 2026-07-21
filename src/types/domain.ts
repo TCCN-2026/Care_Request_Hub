@@ -27,3 +27,10 @@ export type ResponseStatus =
 export type IntroductionDecision = "pending" | "approved" | "rejected";
 
 export type UserRole = "provider" | "supplier" | "admin";
+
+export type VerificationDocumentType =
+  | "public_liability_insurance"
+  | "professional_indemnity_insurance"
+  | "accreditation";
+
+export type VerificationDocumentStatus = "pending_review" | "approved" | "rejected";

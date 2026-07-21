@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -34,6 +35,11 @@ export default async function SupplierDashboardPage() {
           <AlertDescription>
             Once The Care Connector Network verifies your organisation, you&apos;ll be able to see
             and respond to matching requests.
+            <div className="mt-3">
+              <Button asChild size="sm">
+                <Link href="/supplier/verification">Upload verification documents</Link>
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}

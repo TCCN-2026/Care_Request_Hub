@@ -19,3 +19,7 @@ export async function getRequestAttachmentDownloadUrl(attachmentId: string): Pro
 export async function getResponseAttachmentDownloadUrl(attachmentId: string): Promise<AttachmentUrlResult> {
   return getSignedAttachmentUrl("response_attachments", attachmentId);
 }
+
+export async function getVerificationDocumentDownloadUrl(attachmentId: string): Promise<AttachmentUrlResult> {
+  return getSignedAttachmentUrl("verification_documents", attachmentId);
+}

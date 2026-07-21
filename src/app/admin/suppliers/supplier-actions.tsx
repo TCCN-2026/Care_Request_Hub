@@ -3,24 +3,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { verifySupplier, suspendSupplier } from "./actions";
 
 export function VerifySupplierButton({ id }: { id: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
-    <Button
-      size="sm"
-      disabled={pending}
-      onClick={async () => {
-        setPending(true);
-        await verifySupplier(id);
-        setPending(false);
-        router.refresh();
-      }}
-    >
-      {pending ? "Verifying…" : "Verify"}
-    </Button>
+    <div className="flex flex-col items-end gap-2">
+      {error && (
+        <Alert variant="destructive" className="max-w-xs">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Button
+        size="sm"
+        disabled={pending}
+        onClick={async () => {
+          setPending(true);
+          setError(null);
+          const result = await verifySupplier(id);
+          setPending(false);
+          if (result.error) {
+            setError(result.error);
+            return;
+          }
+          router.refresh();
+        }}
+      >
+        {pending ? "Verifying…" : "Verify"}
+      </Button>
+    </div>
   );
 }
 

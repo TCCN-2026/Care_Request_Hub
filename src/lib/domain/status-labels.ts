@@ -1,4 +1,10 @@
-import type { RequestStatus, ResponseStatus, IntroductionDecision } from "@/types/domain";
+import type {
+  RequestStatus,
+  ResponseStatus,
+  IntroductionDecision,
+  VerificationDocumentType,
+  VerificationDocumentStatus,
+} from "@/types/domain";
 
 /**
  * Status is always shown with this text label, never colour alone -
@@ -44,4 +50,25 @@ export const responseStatusBadgeVariant: Record<ResponseStatus, "default" | "sec
   shortlisted: "default",
   declined: "destructive",
   introduced: "default",
+};
+
+export const verificationDocumentTypeLabels: Record<VerificationDocumentType, string> = {
+  public_liability_insurance: "Public liability insurance",
+  professional_indemnity_insurance: "Professional indemnity insurance",
+  accreditation: "Accreditation",
+};
+
+export const verificationDocumentStatusLabels: Record<VerificationDocumentStatus, string> = {
+  pending_review: "Pending review",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+export const verificationDocumentStatusBadgeVariant: Record<
+  VerificationDocumentStatus,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  pending_review: "secondary",
+  approved: "default",
+  rejected: "destructive",
 };

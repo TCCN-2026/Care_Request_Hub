@@ -10,6 +10,8 @@ import type {
   RequestStatus,
   ResponseStatus,
   IntroductionDecision,
+  VerificationDocumentType,
+  VerificationDocumentStatus,
 } from "./domain";
 
 type OrganisationStatus = "pending_verification" | "active" | "suspended";
@@ -243,6 +245,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["messages"]["Row"]>;
         Relationships: [];
       };
+      verification_documents: {
+        Row: {
+          id: string;
+          supplier_org_id: string;
+          document_type: VerificationDocumentType;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          status: VerificationDocumentStatus;
+          rejection_reason: string | null;
+          uploaded_by: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["verification_documents"]["Row"]> &
+          Pick<
+            Database["public"]["Tables"]["verification_documents"]["Row"],
+            "supplier_org_id" | "document_type" | "storage_path" | "file_name" | "file_size" | "mime_type" | "uploaded_by"
+          >;
+        Update: Partial<Database["public"]["Tables"]["verification_documents"]["Row"]>;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -280,6 +306,8 @@ export interface Database {
       request_status: RequestStatus;
       response_status: ResponseStatus;
       introduction_decision: IntroductionDecision;
+      verification_document_type: VerificationDocumentType;
+      verification_document_status: VerificationDocumentStatus;
     };
   };
 }
