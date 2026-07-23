@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/branding/logo";
 import { createClient } from "@/lib/supabase/client";
-import { appSettings } from "@/lib/settings";
 
 export function AppHeader({
   homeHref,
@@ -25,8 +25,8 @@ export function AppHeader({
   return (
     <header className="border-b bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <Link href={homeHref} className="text-base font-semibold tracking-tight text-zinc-900">
-          {appSettings.productName}
+        <Link href={homeHref}>
+          <Logo />
         </Link>
         <nav className="flex items-center gap-1">
           {navItems.map((item) => (

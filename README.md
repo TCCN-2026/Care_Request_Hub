@@ -108,6 +108,12 @@ Created by `npm run seed`. Password for all: `DemoPass123!`
 
 These are placeholder accounts with obviously fictional names on `example.com` — never point this seed script at a production project.
 
+## Branding
+
+Product name, tagline, "powered by" line and the entire colour palette are configured in one place: `src/lib/settings.ts` (`appSettings`). The root layout (`src/app/layout.tsx`) applies `appSettings.colors` as CSS custom properties on `<html>`, which is what every themed component (buttons, badges, links, focus rings) actually reads — so a full colour rebrand is a one-file edit, no CSS changes needed. The current palette (`#083064` navy, `#f5c400` gold) is taken from [thecareconnector.co.uk](https://thecareconnector.co.uk).
+
+The logo defaults to a plain text wordmark (`<Logo>`, `src/components/branding/logo.tsx`) until a real image is supplied: drop the file in `public/brand/` (see `public/brand/README.md`) and set `NEXT_PUBLIC_LOGO_URL` to its public path (e.g. `/brand/logo.png`) — the component then renders the image automatically.
+
 ## Notifications
 
 In-app notifications (visible via a `notifications` table, no UI page built yet in this slice) are created automatically by Postgres triggers on the key events: request approved, response submitted, introduction decided.

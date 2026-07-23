@@ -17,6 +17,7 @@ This build delivers the smallest working version of the core loop, as requested 
 
 ## Simplifications within what *was* built
 
+- **Logo is a text wordmark for now**, not the real logo image, since there's no way for the assistant building this to pull a pasted chat image onto disk as a file. The colour palette and copy are already the real values from thecareconnector.co.uk. Drop the actual logo file into `public/brand/` and set `NEXT_PUBLIC_LOGO_URL` (see `public/brand/README.md`) to switch it over - `<Logo>` picks it up automatically, no code changes needed.
 - **Withdrawing a response is terminal.** The `unique(request_id, supplier_org_id)` constraint means a supplier can't submit a fresh response after withdrawing — matches "one response per supplier per request" literally, but means withdrawal forecloses re-entering that request.
 - **Admin "Approve & publish" is one action**, not the fuller spec's separate approve → set-live steps, and there's no "reject" or "return for changes" flow — an admin either publishes a submitted request or leaves it pending.
 - **A rejected introduction can't be re-requested** for the same response (`unique(response_id)` on `introductions`).

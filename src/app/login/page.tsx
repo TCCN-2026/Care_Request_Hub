@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FieldError } from "@/components/forms/field-error";
+import { Logo } from "@/components/branding/logo";
 import { createClient } from "@/lib/supabase/client";
 import { loginSchema, type LoginInput } from "@/lib/validation/auth";
 import { appSettings } from "@/lib/settings";
@@ -48,7 +49,10 @@ function LoginForm() {
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-semibold text-zinc-900">Log in</h1>
+      <Link href="/" className="self-start">
+        <Logo />
+      </Link>
+      <h1 className="mt-8 text-2xl font-semibold text-zinc-900">Log in</h1>
       <p className="mt-1 text-sm text-zinc-600">to {appSettings.productName}</p>
 
       <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -98,7 +102,7 @@ function LoginForm() {
 
       <p className="mt-6 text-center text-sm text-zinc-600">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-zinc-900 underline underline-offset-2">
+        <Link href="/signup" className="font-medium text-primary underline underline-offset-2">
           Sign up
         </Link>
       </p>

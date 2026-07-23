@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FieldError } from "@/components/forms/field-error";
+import { Logo } from "@/components/branding/logo";
 import { createClient } from "@/lib/supabase/client";
 import { signUpSchema, type SignUpInput } from "@/lib/validation/auth";
 import { appSettings } from "@/lib/settings";
@@ -79,7 +80,10 @@ function SignUpForm() {
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-semibold text-zinc-900">Create your account</h1>
+      <Link href="/" className="self-start">
+        <Logo />
+      </Link>
+      <h1 className="mt-8 text-2xl font-semibold text-zinc-900">Create your account</h1>
       <p className="mt-1 text-sm text-zinc-600">on {appSettings.productName}</p>
 
       <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -98,7 +102,7 @@ function SignUpForm() {
               aria-pressed={accountType === "care_provider"}
               className={`rounded-md border px-4 py-3 text-sm font-medium transition-colors ${
                 accountType === "care_provider"
-                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
               }`}
             >
@@ -110,7 +114,7 @@ function SignUpForm() {
               aria-pressed={accountType === "supplier"}
               className={`rounded-md border px-4 py-3 text-sm font-medium transition-colors ${
                 accountType === "supplier"
-                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
               }`}
             >
@@ -154,7 +158,7 @@ function SignUpForm() {
 
       <p className="mt-6 text-center text-sm text-zinc-600">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-zinc-900 underline underline-offset-2">
+        <Link href="/login" className="font-medium text-primary underline underline-offset-2">
           Log in
         </Link>
       </p>

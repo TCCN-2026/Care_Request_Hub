@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Logo } from "@/components/branding/logo";
 import { appSettings } from "@/lib/settings";
 
 const steps = [
@@ -27,9 +28,7 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-semibold tracking-tight text-zinc-900">
-            {appSettings.productName}
-          </span>
+          <Logo />
           <nav className="flex items-center gap-3">
             <Button variant="ghost" asChild>
               <Link href="/login">Log in</Link>
@@ -58,7 +57,10 @@ export default function Home() {
               <Link href="/signup?type=supplier">I&apos;m a supplier</Link>
             </Button>
           </div>
-          <p className="mt-6 text-sm text-zinc-500">{appSettings.poweredByLine}</p>
+          <div className="mt-10 flex flex-col items-center gap-3">
+            <span aria-hidden className="h-0.5 w-10 rounded-full bg-[var(--highlight)]" />
+            <p className="text-sm text-zinc-500">{appSettings.poweredByLine}</p>
+          </div>
         </section>
 
         <section className="border-t bg-zinc-50 py-16">
