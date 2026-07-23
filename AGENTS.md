@@ -4,7 +4,7 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices. Notably: route protection lives in `src/proxy.ts` (Next 16 renamed `middleware.ts` to `proxy.ts` — the exported function is `proxy`, not `middleware`).
 <!-- END:nextjs-agent-rules -->
 
-# Care Request Hub
+# Care Procurement Hub
 
 ## What this is
 

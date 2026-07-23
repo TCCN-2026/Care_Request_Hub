@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentOrg } from "@/lib/auth/current-org";
 import { responseFormSchema, type ResponseFormInput } from "@/lib/validation/response";
 import { notifyUserByEmail } from "@/lib/notifications/notify-email";
+import { appSettings } from "@/lib/settings";
 
 export interface ResponseActionResult {
   error?: string;
@@ -24,7 +25,7 @@ async function notifyProviderOfNewResponse(
     await notifyUserByEmail(
       request.created_by,
       `New response to ${request.reference}`,
-      "A supplier has submitted a response to your request. Sign in to Care Request Hub to review it.",
+      `A supplier has submitted a response to your request. Sign in to ${appSettings.productName} to review it.`,
     );
   }
 }

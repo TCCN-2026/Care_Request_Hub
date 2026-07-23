@@ -1,4 +1,4 @@
-# Care Request Hub
+# Care Procurement Hub
 
 A protected B2B request-and-supplier-matching platform for the UK care sector, hosted by The Care Connector Network. Care providers post business purchasing/service requests without exposing their identity; verified suppliers see only the anonymous version and respond; the provider chooses who to meet, and contact details are revealed only after an approved introduction.
 

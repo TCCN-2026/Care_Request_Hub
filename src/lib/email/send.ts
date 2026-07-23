@@ -1,4 +1,5 @@
 import "server-only";
+import { appSettings } from "@/lib/settings";
 
 interface SendEmailInput {
   to: string;
@@ -26,7 +27,7 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM_ADDRESS ?? "Care Request Hub <notifications@example.com>",
+      from: process.env.EMAIL_FROM_ADDRESS ?? `${appSettings.productName} <notifications@example.com>`,
       to: input.to,
       subject: input.subject,
       text: input.body,

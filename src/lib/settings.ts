@@ -18,7 +18,7 @@
  * changing a value here is enough on its own.
  */
 export const appSettings = {
-  productName: "Care Request Hub",
+  productName: "Care Procurement Hub",
   tagline: "Tell us what your business needs. Hear from the right suppliers—not every supplier.",
   poweredByLine: "Powered by The Care Connector Network",
   organisationName: "The Care Connector Network",

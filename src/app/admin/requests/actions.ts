@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentOrg } from "@/lib/auth/current-org";
 import { notifyUserByEmail } from "@/lib/notifications/notify-email";
+import { appSettings } from "@/lib/settings";
 
 export interface AdminActionResult {
   error?: string;
@@ -30,7 +31,7 @@ export async function approveAndPublishRequest(id: string): Promise<AdminActionR
   await notifyUserByEmail(
     updated.created_by,
     `Your request ${updated.reference} is now live`,
-    "Suppliers matching your category and area can now see and respond to your request. Sign in to Care Request Hub to see it.",
+    `Suppliers matching your category and area can now see and respond to your request. Sign in to ${appSettings.productName} to see it.`,
   );
 
   revalidatePath("/admin/requests");
