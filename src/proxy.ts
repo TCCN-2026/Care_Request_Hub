@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
+import { SITE_GATE_COOKIE, SITE_GATE_PATH, hashSitePassword } from "@/lib/site-gate";
 
 const roleHomePath: Record<string, string> = {
   care_provider: "/provider/dashboard",
@@ -25,6 +26,32 @@ function isProtectedPath(pathname: string) {
 }
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Whole-site password gate for trusted testers - independent of, and
+  // ahead of, the app's real authentication below. Only active when
+  // SITE_PASSWORD is set, so local dev and any deploy that hasn't
+  // configured it behave exactly as before (fully open).
+  const sitePassword = process.env.SITE_PASSWORD;
+  if (sitePassword && pathname !== "/api/health") {
+    const expectedToken = await hashSitePassword(sitePassword);
+    const hasAccess = request.cookies.get(SITE_GATE_COOKIE)?.value === expectedToken;
+
+    if (pathname === SITE_GATE_PATH) {
+      if (hasAccess) {
+        const next = request.nextUrl.searchParams.get("next") || "/";
+        return NextResponse.redirect(new URL(next, request.url));
+      }
+      return NextResponse.next({ request });
+    }
+
+    if (!hasAccess) {
+      const gateUrl = new URL(SITE_GATE_PATH, request.url);
+      gateUrl.searchParams.set("next", pathname + request.nextUrl.search);
+      return NextResponse.redirect(gateUrl);
+    }
+  }
+
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -46,8 +73,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   if (!isProtectedPath(pathname)) {
     return response;

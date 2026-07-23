@@ -131,12 +131,18 @@ Playwright end-to-end tests are not included in this slice — the integration t
 
 ## Deployment
 
-Not deployed as part of this build. To deploy:
+Deployed to Vercel from this GitHub repo. To set up a new environment:
 
-1. Push this repository to GitHub.
-2. Apply `supabase/migrations/` to your production Supabase project (same `supabase db push` command as local setup, pointed at the production project).
-3. Import the repo into Vercel, set the environment variables from `.env.example` in the Vercel project settings (**never** commit real values), and deploy.
-4. `SUPABASE_SERVICE_ROLE_KEY` must only ever be set as a server-side environment variable — it is never read by client code in this codebase (grep confirms no `NEXT_PUBLIC_` prefix on it).
+1. **Push this repository to GitHub** (already done for the main project repo).
+2. **Apply `supabase/migrations/`** to whichever Supabase project this deployment should use — the same project as local dev is fine while testing, or a separate one later (same `supabase db push` command as local setup, pointed at that project's pooler connection string).
+3. **Import the repo into Vercel** — from the Vercel dashboard, "Add New… → Project", connect your GitHub account if you haven't already, and select this repository. Vercel auto-detects Next.js; the default build settings need no changes.
+4. **Set environment variables** in the Vercel project's Settings → Environment Variables, using the same values as your `.env.local` (never commit these — copy them across by hand): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and optionally the branding/email/HighLevel/`SITE_PASSWORD` vars from `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` must only ever be set as a server-side environment variable — it is never read by client code in this codebase (grep confirms no `NEXT_PUBLIC_` prefix on it).
+5. **Deploy.** Vercel builds and gives you a `*.vercel.app` URL.
+6. **(Optional) Seed demo data** against the production Supabase project by running `npm run seed` locally with `.env.local` pointed at it.
+
+### Restricting access to trusted testers
+
+Since this project has its own whole-site password gate (independent of Vercel's paid "Password Protection" feature, so it works on any Vercel plan), set the `SITE_PASSWORD` environment variable in Vercel to require a shared password before anything on the site loads — visitors are redirected to `/site-login` until they enter it, and the app's normal login/signup/role logic works exactly as before once past that gate. Leave `SITE_PASSWORD` unset (the default) for a fully open deployment. Give the password directly to your testers; there's no user-management for it, just the one shared value.
 
 ## Known limitations
 

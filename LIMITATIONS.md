@@ -22,6 +22,7 @@ This build delivers the smallest working version of the core loop, as requested 
 - **Admin "Approve & publish" is one action**, not the fuller spec's separate approve → set-live steps, and there's no "reject" or "return for changes" flow — an admin either publishes a submitted request or leaves it pending.
 - **A rejected introduction can't be re-requested** for the same response (`unique(response_id)` on `introductions`).
 - **No separate "unverified/suspended" messaging for suppliers beyond the dashboard banner** shown in this build.
+- **The whole-site password gate (`SITE_PASSWORD`) is a coarse "keep it to trusted testers" measure, not real access control.** One shared password unlocks a cookie for anyone who has it - it's not tied to a user identity, has no expiry-and-reissue flow beyond the cookie's 30-day lifetime, and isn't a substitute for removing it once the deploy is ready for the public. It sits entirely separate from the app's real per-user authentication (Supabase Auth + RLS), which is unaffected by it either way.
 
 ## Accepted trade-offs
 
