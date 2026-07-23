@@ -42,7 +42,15 @@ function SignUpForm() {
     const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
-      options: { data: { account_type: values.accountType } },
+      options: {
+        data: { account_type: values.accountType },
+        // Built from wherever the app is actually running, rather than
+        // relying solely on Supabase's dashboard-configured Site URL -
+        // works the same in local dev and on any deployed URL. Supabase
+        // still requires this exact URL to be in the project's Redirect
+        // URLs allow-list (Authentication -> URL Configuration).
+        emailRedirectTo: `${window.location.origin}/login?confirmed=1`,
+      },
     });
     setSubmitting(false);
 

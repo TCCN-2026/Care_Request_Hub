@@ -20,6 +20,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const justConfirmed = searchParams.get("confirmed") === "1";
 
   const {
     register,
@@ -56,6 +57,11 @@ function LoginForm() {
       <p className="mt-1 text-sm text-zinc-600">to {appSettings.productName}</p>
 
       <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
+        {justConfirmed && !formError && (
+          <Alert>
+            <AlertDescription>Email confirmed - log in to continue.</AlertDescription>
+          </Alert>
+        )}
         {formError && (
           <Alert variant="destructive">
             <AlertDescription>{formError}</AlertDescription>
