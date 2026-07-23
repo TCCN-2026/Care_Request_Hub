@@ -12,6 +12,7 @@ import type {
   IntroductionDecision,
   VerificationDocumentType,
   VerificationDocumentStatus,
+  UrgencyLevel,
 } from "./domain";
 
 type OrganisationStatus = "pending_verification" | "active" | "suspended";
@@ -93,6 +94,10 @@ export interface Database {
           mandatory_requirements: string | null;
           postcode_prefix: string;
           closing_date: string;
+          budget_min: number | null;
+          budget_max: number | null;
+          budget_includes_vat: boolean | null;
+          urgency: UrgencyLevel;
           status: RequestStatus;
           paid_per_request: boolean;
           created_by: string;

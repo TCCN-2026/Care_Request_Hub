@@ -34,3 +34,5 @@ export type VerificationDocumentType =
   | "accreditation";
 
 export type VerificationDocumentStatus = "pending_review" | "approved" | "rejected";
+
+export type UrgencyLevel = "exploring" | "standard" | "urgent";

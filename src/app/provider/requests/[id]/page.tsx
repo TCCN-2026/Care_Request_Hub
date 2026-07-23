@@ -8,8 +8,11 @@ import {
   requestStatusBadgeVariant,
   responseStatusLabels,
   responseStatusBadgeVariant,
+  urgencyLevelLabels,
+  urgencyLevelBadgeVariant,
 } from "@/lib/domain/status-labels";
 import { getSupplierLabelMap } from "@/lib/domain/supplier-labels";
+import { formatBudgetRange } from "@/lib/domain/format";
 import { RequestForm } from "../request-form";
 import { SubmitRequestButton, CancelRequestButton } from "./request-actions";
 import { ResponseCardActions } from "./response-card-actions";
@@ -62,6 +65,10 @@ export default async function ProviderRequestDetailPage({
               mandatoryRequirements: request.mandatory_requirements ?? "",
               postcodePrefix: request.postcode_prefix,
               closingDate: request.closing_date,
+              budgetMin: request.budget_min ?? undefined,
+              budgetMax: request.budget_max ?? undefined,
+              budgetIncludesVat: request.budget_includes_vat ?? undefined,
+              urgency: request.urgency,
               confirmNoPersonalData: true,
             }}
           />
@@ -91,9 +98,12 @@ export default async function ProviderRequestDetailPage({
     <div className="max-w-2xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900">{request.title}</h1>
-        <Badge variant={requestStatusBadgeVariant[request.status]}>
-          {requestStatusLabels[request.status]}
-        </Badge>
+        <div className="flex gap-2">
+          <Badge variant={urgencyLevelBadgeVariant[request.urgency]}>{urgencyLevelLabels[request.urgency]}</Badge>
+          <Badge variant={requestStatusBadgeVariant[request.status]}>
+            {requestStatusLabels[request.status]}
+          </Badge>
+        </div>
       </div>
       <p className="mt-1 text-sm text-zinc-500">{request.reference}</p>
 
@@ -125,6 +135,17 @@ export default async function ProviderRequestDetailPage({
               <p className="mt-1 text-zinc-900">
                 {new Date(request.closing_date).toLocaleDateString("en-GB")}
               </p>
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-zinc-500">Budget range</h2>
+              <p className="mt-1 text-zinc-900">
+                {formatBudgetRange(request.budget_min, request.budget_max, request.budget_includes_vat) ??
+                  "Not given"}
+              </p>
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-zinc-500">Urgency</h2>
+              <p className="mt-1 text-zinc-900">{urgencyLevelLabels[request.urgency]}</p>
             </div>
           </div>
         </CardContent>

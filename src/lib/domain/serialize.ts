@@ -19,6 +19,10 @@ export interface SupplierVisibleRequest {
   mandatoryRequirements: string | null;
   postcodePrefix: string;
   closingDate: string;
+  budgetMin: number | null;
+  budgetMax: number | null;
+  budgetIncludesVat: boolean | null;
+  urgency: RequestRow["urgency"];
   status: RequestRow["status"];
   createdAt: string;
 }
@@ -34,6 +38,10 @@ type SupplierVisibleRequestSource = Pick<
   | "mandatory_requirements"
   | "postcode_prefix"
   | "closing_date"
+  | "budget_min"
+  | "budget_max"
+  | "budget_includes_vat"
+  | "urgency"
   | "status"
   | "created_at"
 >;
@@ -49,6 +57,10 @@ export function toSupplierVisibleRequest(row: SupplierVisibleRequestSource): Sup
     mandatoryRequirements: row.mandatory_requirements,
     postcodePrefix: row.postcode_prefix,
     closingDate: row.closing_date,
+    budgetMin: row.budget_min,
+    budgetMax: row.budget_max,
+    budgetIncludesVat: row.budget_includes_vat,
+    urgency: row.urgency,
     status: row.status,
     createdAt: row.created_at,
   };

@@ -11,6 +11,7 @@ export interface RequestActionResult {
 }
 
 function toRow(input: RequestFormInput) {
+  const hasBudget = input.budgetMin !== undefined || input.budgetMax !== undefined;
   return {
     title: input.title,
     category_id: input.categoryId,
@@ -19,6 +20,10 @@ function toRow(input: RequestFormInput) {
     mandatory_requirements: input.mandatoryRequirements || null,
     postcode_prefix: input.postcodePrefix,
     closing_date: input.closingDate,
+    budget_min: input.budgetMin ?? null,
+    budget_max: input.budgetMax ?? null,
+    budget_includes_vat: hasBudget ? (input.budgetIncludesVat ?? false) : null,
+    urgency: input.urgency,
   };
 }
 

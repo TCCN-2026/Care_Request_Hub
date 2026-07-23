@@ -4,6 +4,7 @@ import type {
   IntroductionDecision,
   VerificationDocumentType,
   VerificationDocumentStatus,
+  UrgencyLevel,
 } from "@/types/domain";
 
 /**
@@ -71,4 +72,22 @@ export const verificationDocumentStatusBadgeVariant: Record<
   pending_review: "secondary",
   approved: "default",
   rejected: "destructive",
+};
+
+export const urgencyLevelLabels: Record<UrgencyLevel, string> = {
+  exploring: "Just exploring",
+  standard: "Standard",
+  urgent: "Urgent",
+};
+
+export const urgencyLevelDescriptions: Record<UrgencyLevel, string> = {
+  exploring: "Testing the water",
+  standard: "Real project, ready to proceed",
+  urgent: "Need it fast",
+};
+
+export const urgencyLevelBadgeVariant: Record<UrgencyLevel, "default" | "secondary" | "destructive" | "outline"> = {
+  exploring: "outline",
+  standard: "secondary",
+  urgent: "destructive",
 };

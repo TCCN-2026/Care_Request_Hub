@@ -19,11 +19,16 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FieldError } from "@/components/forms/field-error";
 import { requestFormSchema, type RequestFormInput } from "@/lib/validation/request";
+import { urgencyLevelLabels, urgencyLevelDescriptions } from "@/lib/domain/status-labels";
 import { createRequest, updateRequest } from "./actions";
 
 interface Category {
   id: string;
   name: string;
+}
+
+function numberOrUndefined(value: string): number | undefined {
+  return value === "" ? undefined : Number(value);
 }
 
 export function RequestForm({
@@ -48,7 +53,7 @@ export function RequestForm({
     formState: { errors },
   } = useForm<RequestFormInput>({
     resolver: zodResolver(requestFormSchema),
-    defaultValues,
+    defaultValues: { urgency: "standard", ...defaultValues },
   });
 
   async function save(values: RequestFormInput, submit: boolean) {
@@ -145,6 +150,75 @@ export function RequestForm({
           <Input id="closingDate" type="date" className="mt-1.5" {...register("closingDate")} />
           <FieldError id="closingDate-error" message={errors.closingDate?.message} />
         </div>
+      </div>
+
+      <div>
+        <Label>Estimated budget range, £ (optional)</Label>
+        <p className="mt-1 text-sm text-zinc-500">
+          A rough low/high figure - this helps suppliers judge whether it&apos;s worth responding
+          before they spend time on it. It doesn&apos;t need to be exact.
+        </p>
+        <div className="mt-1.5 grid gap-3 sm:grid-cols-2">
+          <div>
+            <Input
+              id="budgetMin"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Low"
+              aria-label="Estimated budget, low end"
+              {...register("budgetMin", { setValueAs: numberOrUndefined })}
+            />
+            <FieldError id="budgetMin-error" message={errors.budgetMin?.message} />
+          </div>
+          <div>
+            <Input
+              id="budgetMax"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="High"
+              aria-label="Estimated budget, high end"
+              {...register("budgetMax", { setValueAs: numberOrUndefined })}
+            />
+            <FieldError id="budgetMax-error" message={errors.budgetMax?.message} />
+          </div>
+        </div>
+        <label className="mt-2 flex items-center gap-2 text-sm text-zinc-700">
+          <Controller
+            control={control}
+            name="budgetIncludesVat"
+            render={({ field }) => (
+              <Checkbox checked={field.value === true} onCheckedChange={(checked) => field.onChange(checked === true)} />
+            )}
+          />
+          Includes VAT
+        </label>
+      </div>
+
+      <div>
+        <Label htmlFor="urgency">Urgency</Label>
+        <Controller
+          control={control}
+          name="urgency"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger id="urgency" className="mt-1.5 w-full">
+                <SelectValue placeholder="Choose an urgency level" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.entries(urgencyLevelLabels) as [RequestFormInput["urgency"], string][]).map(
+                  ([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label} &ndash; {urgencyLevelDescriptions[value]}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        <FieldError id="urgency-error" message={errors.urgency?.message} />
       </div>
 
       <div>

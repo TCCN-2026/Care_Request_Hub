@@ -4,7 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentOrg } from "@/lib/auth/current-org";
 import { toSupplierVisibleRequest } from "@/lib/domain/serialize";
-import { responseStatusLabels, responseStatusBadgeVariant } from "@/lib/domain/status-labels";
+import {
+  responseStatusLabels,
+  responseStatusBadgeVariant,
+  urgencyLevelLabels,
+  urgencyLevelBadgeVariant,
+} from "@/lib/domain/status-labels";
+import { formatBudgetRange } from "@/lib/domain/format";
 import { ResponseForm } from "./response-form";
 import { WithdrawResponseButton } from "./response-actions";
 import { uploadResponseAttachment, deleteResponseAttachment } from "./attachment-actions";
@@ -26,7 +32,7 @@ export default async function OpportunityDetailPage({
   const { data: row } = await supabase
     .from("requests")
     .select(
-      "id, reference, title, category_id, description, desired_outcome, mandatory_requirements, postcode_prefix, closing_date, status, created_at",
+      "id, reference, title, category_id, description, desired_outcome, mandatory_requirements, postcode_prefix, closing_date, budget_min, budget_max, budget_includes_vat, urgency, status, created_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -104,9 +110,14 @@ export default async function OpportunityDetailPage({
 
   return (
     <div className="max-w-2xl">
-      <p className="text-sm text-zinc-500">
-        {opportunity.reference} &middot; {category?.name} &middot; {opportunity.postcodePrefix}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-500">
+          {opportunity.reference} &middot; {category?.name} &middot; {opportunity.postcodePrefix}
+        </p>
+        <Badge variant={urgencyLevelBadgeVariant[opportunity.urgency]}>
+          {urgencyLevelLabels[opportunity.urgency]}
+        </Badge>
+      </div>
       <h1 className="mt-1 text-2xl font-semibold text-zinc-900">{opportunity.title}</h1>
 
       <Card className="mt-6">
@@ -127,11 +138,20 @@ export default async function OpportunityDetailPage({
               <p className="mt-1 whitespace-pre-wrap text-zinc-900">{opportunity.mandatoryRequirements}</p>
             </div>
           )}
-          <div>
-            <h2 className="text-sm font-medium text-zinc-500">Closing date</h2>
-            <p className="mt-1 text-zinc-900">
-              {new Date(opportunity.closingDate).toLocaleDateString("en-GB")}
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h2 className="text-sm font-medium text-zinc-500">Closing date</h2>
+              <p className="mt-1 text-zinc-900">
+                {new Date(opportunity.closingDate).toLocaleDateString("en-GB")}
+              </p>
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-zinc-500">Budget range</h2>
+              <p className="mt-1 text-zinc-900">
+                {formatBudgetRange(opportunity.budgetMin, opportunity.budgetMax, opportunity.budgetIncludesVat) ??
+                  "Not given"}
+              </p>
+            </div>
           </div>
           {requestAttachments && requestAttachments.length > 0 && (
             <div className="border-t pt-4">

@@ -2,7 +2,13 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { requestStatusLabels, requestStatusBadgeVariant } from "@/lib/domain/status-labels";
+import {
+  requestStatusLabels,
+  requestStatusBadgeVariant,
+  urgencyLevelLabels,
+  urgencyLevelBadgeVariant,
+} from "@/lib/domain/status-labels";
+import { formatBudgetRange } from "@/lib/domain/format";
 import { ApproveRequestButton, CloseRequestButton } from "./admin-request-actions";
 import { getRequestAttachmentDownloadUrl } from "@/lib/attachments/actions";
 import { AttachmentList } from "@/components/attachments/attachment-list";
@@ -48,9 +54,12 @@ export default async function AdminRequestDetailPage({
     <div className="max-w-2xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900">{request.title}</h1>
-        <Badge variant={requestStatusBadgeVariant[request.status]}>
-          {requestStatusLabels[request.status]}
-        </Badge>
+        <div className="flex gap-2">
+          <Badge variant={urgencyLevelBadgeVariant[request.urgency]}>{urgencyLevelLabels[request.urgency]}</Badge>
+          <Badge variant={requestStatusBadgeVariant[request.status]}>
+            {requestStatusLabels[request.status]}
+          </Badge>
+        </div>
       </div>
       <p className="mt-1 text-sm text-zinc-500">
         {request.reference} &middot; {providerOrg?.name ?? "Unknown organisation"} &middot; {category?.name}
@@ -89,6 +98,13 @@ export default async function AdminRequestDetailPage({
               <h2 className="text-sm font-medium text-zinc-500">Closing date</h2>
               <p className="mt-1 text-zinc-900">
                 {new Date(request.closing_date).toLocaleDateString("en-GB")}
+              </p>
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-zinc-500">Budget range</h2>
+              <p className="mt-1 text-zinc-900">
+                {formatBudgetRange(request.budget_min, request.budget_max, request.budget_includes_vat) ??
+                  "Not given"}
               </p>
             </div>
           </div>

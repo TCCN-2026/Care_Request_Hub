@@ -2,13 +2,18 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { requestStatusLabels, requestStatusBadgeVariant } from "@/lib/domain/status-labels";
+import {
+  requestStatusLabels,
+  requestStatusBadgeVariant,
+  urgencyLevelLabels,
+  urgencyLevelBadgeVariant,
+} from "@/lib/domain/status-labels";
 
 export default async function AdminRequestsPage() {
   const supabase = await createClient();
   const { data: requests } = await supabase
     .from("requests")
-    .select("id, reference, title, status, provider_org_id, submitted_at, created_at")
+    .select("id, reference, title, status, urgency, provider_org_id, submitted_at, created_at")
     .order("created_at", { ascending: false });
 
   const orgIds = [...new Set((requests ?? []).map((r) => r.provider_org_id))];
@@ -47,6 +52,7 @@ function RequestList({
     reference: string;
     title: string;
     status: keyof typeof requestStatusLabels;
+    urgency: keyof typeof urgencyLevelLabels;
     provider_org_id: string;
   }[];
   orgNameById: Map<string, string>;
@@ -69,9 +75,14 @@ function RequestList({
                   </p>
                   <p className="font-medium text-zinc-900">{request.title}</p>
                 </div>
-                <Badge variant={requestStatusBadgeVariant[request.status]}>
-                  {requestStatusLabels[request.status]}
-                </Badge>
+                <div className="flex gap-2">
+                  <Badge variant={urgencyLevelBadgeVariant[request.urgency]}>
+                    {urgencyLevelLabels[request.urgency]}
+                  </Badge>
+                  <Badge variant={requestStatusBadgeVariant[request.status]}>
+                    {requestStatusLabels[request.status]}
+                  </Badge>
+                </div>
               </CardContent>
             </Card>
           </Link>

@@ -5,8 +5,23 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentOrg } from "@/lib/auth/current-org";
 import { toSupplierVisibleRequest } from "@/lib/domain/serialize";
+import { formatBudgetRange } from "@/lib/domain/format";
+import { urgencyLevelLabels, urgencyLevelBadgeVariant } from "@/lib/domain/status-labels";
+import type { UrgencyLevel } from "@/types/domain";
+import { UrgencyFilter } from "./urgency-filter";
 
-export default async function SupplierOpportunitiesPage() {
+const URGENCY_FILTER_VALUES: UrgencyLevel[] = ["exploring", "standard", "urgent"];
+
+export default async function SupplierOpportunitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ urgency?: string }>;
+}) {
+  const { urgency: urgencyParam } = await searchParams;
+  const urgencyFilter = URGENCY_FILTER_VALUES.includes(urgencyParam as UrgencyLevel)
+    ? (urgencyParam as UrgencyLevel)
+    : null;
+
   const { orgId } = await requireCurrentOrg();
   const supabase = await createClient();
 
@@ -31,13 +46,17 @@ export default async function SupplierOpportunitiesPage() {
   // categories and postcode coverage - the explicit column list is a
   // second, independent guarantee that no provider-identifying column can
   // ever be selected here, even if the requests table gains one later.
-  const { data: rows } = await supabase
+  let query = supabase
     .from("requests")
     .select(
-      "id, reference, title, category_id, description, desired_outcome, mandatory_requirements, postcode_prefix, closing_date, status, created_at",
+      "id, reference, title, category_id, description, desired_outcome, mandatory_requirements, postcode_prefix, closing_date, budget_min, budget_max, budget_includes_vat, urgency, status, created_at",
     )
     .eq("status", "open")
     .order("closing_date", { ascending: true });
+  if (urgencyFilter) {
+    query = query.eq("urgency", urgencyFilter);
+  }
+  const { data: rows } = await query;
 
   const opportunities = (rows ?? []).map(toSupplierVisibleRequest);
 
@@ -61,6 +80,10 @@ export default async function SupplierOpportunitiesPage() {
         Requests matching your service categories and coverage areas. You&apos;re seeing the
         anonymous version - the provider&apos;s identity is never shown here.
       </p>
+
+      <div className="mt-4">
+        <UrgencyFilter selected={urgencyFilter} />
+      </div>
 
       {opportunities.length === 0 ? (
         <Card className="mt-6">
@@ -91,12 +114,23 @@ export default async function SupplierOpportunitiesPage() {
                           {daysRemaining >= 0 ? `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left to respond` : "Closing date has passed"}
                           {opportunity.mandatoryRequirements ? " · Has mandatory requirements" : ""}
                         </p>
+                        {formatBudgetRange(opportunity.budgetMin, opportunity.budgetMax, opportunity.budgetIncludesVat) && (
+                          <p className="mt-1 text-sm text-zinc-500">
+                            Budget:{" "}
+                            {formatBudgetRange(opportunity.budgetMin, opportunity.budgetMax, opportunity.budgetIncludesVat)}
+                          </p>
+                        )}
                       </div>
-                      {existingStatus && (
-                        <Badge variant={existingStatus === "draft" ? "outline" : "secondary"}>
-                          {existingStatus === "draft" ? "Draft response saved" : "You responded"}
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <Badge variant={urgencyLevelBadgeVariant[opportunity.urgency]}>
+                          {urgencyLevelLabels[opportunity.urgency]}
                         </Badge>
-                      )}
+                        {existingStatus && (
+                          <Badge variant={existingStatus === "draft" ? "outline" : "secondary"}>
+                            {existingStatus === "draft" ? "Draft response saved" : "You responded"}
+                          </Badge>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>

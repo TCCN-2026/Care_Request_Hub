@@ -13,6 +13,10 @@ describe("toSupplierVisibleRequest", () => {
     mandatory_requirements: null,
     postcode_prefix: "KA5",
     closing_date: "2026-09-01",
+    budget_min: 500,
+    budget_max: 2000,
+    budget_includes_vat: false,
+    urgency: "urgent" as const,
     status: "open" as const,
     created_by: "provider-user-1",
     approved_by: "admin-user-1",
@@ -34,9 +38,36 @@ describe("toSupplierVisibleRequest", () => {
       mandatoryRequirements: null,
       postcodePrefix: "KA5",
       closingDate: "2026-09-01",
+      budgetMin: 500,
+      budgetMax: 2000,
+      budgetIncludesVat: false,
+      urgency: "urgent",
       status: "open",
       createdAt: "2026-06-30T00:00:00Z",
     });
+  });
+
+  it("carries the budget range through even when only a lower bound was given", () => {
+    const result = toSupplierVisibleRequest({ ...fullRow, budget_min: 500, budget_max: null, budget_includes_vat: null });
+    expect(result.budgetMin).toBe(500);
+    expect(result.budgetMax).toBeNull();
+    expect(result.budgetIncludesVat).toBeNull();
+  });
+
+  it("carries a fully absent budget range through as all-null, not omitted", () => {
+    const result = toSupplierVisibleRequest({ ...fullRow, budget_min: null, budget_max: null, budget_includes_vat: null });
+    expect(result.budgetMin).toBeNull();
+    expect(result.budgetMax).toBeNull();
+    expect(result.budgetIncludesVat).toBeNull();
+    // The key is still present - a supplier's UI can distinguish "no budget
+    // given" from "field missing", rather than the allow-list silently
+    // dropping it.
+    expect(Object.prototype.hasOwnProperty.call(result, "budgetMin")).toBe(true);
+  });
+
+  it("carries the urgency level through unchanged", () => {
+    const result = toSupplierVisibleRequest({ ...fullRow, urgency: "exploring" });
+    expect(result.urgency).toBe("exploring");
   });
 
   it("never exposes provider-identifying fields, even if present on the source row", () => {
@@ -62,6 +93,10 @@ describe("toSupplierVisibleRequest", () => {
         "mandatoryRequirements",
         "postcodePrefix",
         "closingDate",
+        "budgetMin",
+        "budgetMax",
+        "budgetIncludesVat",
+        "urgency",
         "status",
         "createdAt",
       ].sort(),

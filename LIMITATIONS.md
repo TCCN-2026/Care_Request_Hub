@@ -79,6 +79,16 @@ Covered by `src/lib/integration/verification-documents.test.ts`: a supplier can'
 
 As with attachments, the remote browser tooling used to build this can't drive a native OS file picker, so the actual upload path is exercised by the integration tests above rather than a live browser click-through; the surrounding page (empty states, status badges, admin review controls, the verification-gate error message) was checked in a live browser.
 
+## Budget range and urgency level (added after verification documents)
+
+A request can optionally carry a rough budget range - a low bound, a high bound, and whether it includes VAT, all independently nullable (a provider can give just a floor, just a ceiling, both, or neither) - plus an urgency level (`exploring` / `standard` / `urgent`, defaulting to `standard`) that's always set. Both are plain columns on `requests` (`urgency` is `text` with a `check` constraint, matching the existing `vat_status` pattern on `responses`, rather than a Postgres enum type, since neither is referenced by any other table or RLS policy) - no new RLS was needed, since suppliers already see everything else on a matching open request the same way. `formatBudgetRange()` (`src/lib/domain/format.ts`) renders the range as "£X - £Y", "From £X", or "Up to £Y" depending on which bounds are present, plus a "(incl./excl. VAT)" suffix only when that was actually specified - never implying more precision than the provider gave.
+
+Shown on the provider's own request page, the admin request list and detail page, and the supplier's opportunity feed and detail page (both via the `toSupplierVisibleRequest` allow-list serializer, extended with the four new fields). The opportunities feed also supports filtering by urgency via a `?urgency=` query parameter and a plain set of `<Link>` chips - no client-side JavaScript needed, consistent with the rest of that page being a server component.
+
+Not included: any different amount-of-information or matching logic per urgency level (explicitly deferred per the request - it's currently informational/filterable only), a numeric range slider or currency selector (GBP only, matching the rest of the platform), and a supplier-side "budget too low" flag or warning.
+
+Covered by `src/lib/integration/budget-urgency.test.ts`: a matching supplier sees the exact budget figures (including a request with no budget given at all, confirming it's genuinely optional, not defaulted), and urgency can be filtered at the query level the same way the opportunities feed page does it. The serializer allow-list itself (`src/lib/domain/serialize.test.ts`) and the Zod form schema (`src/lib/validation/request.test.ts`, covering min-only/max-only/negative/out-of-order budget inputs and a required-but-defaulted-in-the-UI urgency field) are covered by unit tests, and `formatBudgetRange` has its own dedicated unit test (`src/lib/domain/format.test.ts`).
+
 ## Recommended next five tasks
 
 1. Build the admin category/region management screens and expand the seeded category list to match the full spec.
