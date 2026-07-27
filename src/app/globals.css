@@ -128,3 +128,15 @@
     @apply font-sans;
   }
 }
+
+/* Homepage "what people are looking for" ticker - a plain, seamless loop
+   (the track is rendered twice back-to-back; translating exactly -50%
+   brings the second copy into the position the first started at). */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

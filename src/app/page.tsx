@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/branding/logo";
+import { LiveActivityFeed } from "@/components/marketing/live-activity-feed";
+import { createClient } from "@/lib/supabase/server";
 import { appSettings } from "@/lib/settings";
 
 const steps = [
@@ -23,7 +25,18 @@ const steps = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  // Public, unauthenticated read - the view itself (not RLS on requests
+  // directly) is what makes this safe to expose to anyone; see
+  // supabase/migrations/0020_public_activity_feed.sql.
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("public_live_request_categories")
+    .select("category_name")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const liveCategories = (data ?? []).map((row) => row.category_name);
+
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b bg-white">
@@ -60,6 +73,20 @@ export default function Home() {
           <div className="mt-10 flex flex-col items-center gap-3">
             <span aria-hidden className="h-0.5 w-10 rounded-full bg-[var(--highlight)]" />
             <p className="text-sm text-zinc-500">{appSettings.poweredByLine}</p>
+          </div>
+        </section>
+
+        <section className="border-t bg-white py-12">
+          <div className="mx-auto max-w-4xl px-6">
+            <h2 className="text-center text-sm font-medium tracking-wide text-zinc-500 uppercase">
+              What people are looking for
+            </h2>
+            <div className="mt-6">
+              <LiveActivityFeed categories={liveCategories} />
+            </div>
+            <p className="mt-6 text-center text-xs text-zinc-400">
+              Categories only - provider identities stay private until they choose to share them.
+            </p>
           </div>
         </section>
 

@@ -289,7 +289,16 @@ export interface Database {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      public_live_request_categories: {
+        Row: {
+          id: string;
+          category_name: string;
+          created_at: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       create_organisation_and_join: {
         Args: {
